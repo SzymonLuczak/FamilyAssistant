@@ -22,6 +22,9 @@ services:
       Shopping__Account1Label: ${BIEDRONKA_ACCOUNT_1_LABEL:-Konto 1}
       Shopping__Account2Label: ${BIEDRONKA_ACCOUNT_2_LABEL:-Konto 2}
       Shopping__WhatsAppEnabled: ${SHOPPING_WHATSAPP_ENABLED:-false}
+      Shopping__AnthropicApiKey: ${ANTHROPIC_API_KEY:-}
+      Shopping__LeafletModel: ${LEAFLET_MODEL:-claude-sonnet-5}
+      Shopping__LeafletMaxPagesPerRun: ${LEAFLET_MAX_PAGES:-120}
       Shopping__ProposalDay: ${SHOPPING_PROPOSAL_DAY:-}
       Shopping__ProposalTime: ${SHOPPING_PROPOSAL_TIME:-18:00}
       Summary__SchedulerEnabled: ${SUMMARY_SCHEDULER_ENABLED:-true}

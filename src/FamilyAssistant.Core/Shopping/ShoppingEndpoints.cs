@@ -44,6 +44,21 @@ public static class ShoppingEndpoints
             var added = await store.Import(receipt, context.Request.Query["account"].ToString());
             return Results.Ok(new { added, items = receipt.Lines.Length, total = receipt.Total });
         });
+        app.MapGet("/shopping/deals", async (LeafletScanner leaflets) =>
+        {
+            var state = await leaflets.Read();
+            return Results.Ok(new { enabled = leaflets.Enabled, running = leaflets.Running, checkedAt = state.CheckedAt, error = state.LastError,
+                leaflets = state.Leaflets.Values.Select(l => new { l.Title, l.Url, l.Pages, read = l.Offers.Count, offers = l.Offers.Values.Sum(o => o.Count) }),
+                deals = await leaflets.ActiveMatches() });
+        });
+        // Everything read from the leaflets, to check what the model recognised.
+        app.MapGet("/shopping/deals/offers", async (LeafletScanner leaflets) =>
+            (await leaflets.Read()).Leaflets.Values.SelectMany(l => l.Offers.OrderBy(p => p.Key).SelectMany(p => p.Value)).ToArray());
+        app.MapPost("/shopping/deals/scan", async (HttpContext context, IAntiforgery csrf, LeafletScanner leaflets) =>
+        {
+            await csrf.ValidateRequestAsync(context);
+            return Results.Ok(new { started = leaflets.Start() });
+        });
         app.MapPost("/shopping/whatsapp/proposal", async (HttpContext context, IAntiforgery csrf, ShoppingMessenger messenger) =>
         {
             await csrf.ValidateRequestAsync(context);
@@ -67,7 +82,7 @@ public static class ShoppingEndpoints
     private const string ConnectionPage = """
     <!doctype html><html lang="pl"><meta charset="utf-8"><title>Biedronka — dodatek</title>
     <style>body{font:18px system-ui;max-width:850px;margin:40px auto;padding:20px;line-height:1.6}code{overflow-wrap:anywhere}</style>
-    <h1>Paragony z dwóch kont Biedronki</h1><p>Poprzednie okno noVNC zostało wyłączone.</p>
+    <nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Paragony z dwóch kont Biedronki</h1><p>Poprzednie okno noVNC zostało wyłączone.</p>
     <ol><li>Utwórz dwa profile zwykłego Chrome lub Edge, po jednym na konto.</li>
     <li>W każdym otwórz <code>chrome://extensions</code> lub <code>edge://extensions</code>. Włącz tryb dewelopera, wybierz „Załaduj rozpakowane” i wskaż <code>C:\development\FamilyAssistant\src\FamilyAssistant.BiedronkaExtension</code>.</li>
     <li>Zaloguj się na <a href="https://moja.biedronka.pl/panel/paragons">stronie Biedronki</a>. W dodatku wybierz Konto 1 lub 2, wpisz imię z powitania i zapisz ustawienia.</li>
@@ -82,11 +97,13 @@ public static class ShoppingEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — zakupy</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:950px;margin:24px auto;padding:28px;background:white;border-radius:18px}button,input{font:inherit;padding:9px;margin:5px}button{cursor:pointer}article{border-bottom:1px solid #dce6df;padding:15px 0}small{display:block;color:#52685d}a{color:#176c52}#message{white-space:pre-wrap}h2{margin-top:32px}</style>
-    <main><a href="/summary">← Plan rodziny</a> · <a href="/shopping/biedronka">Połączenie kont Biedronki</a><h1>Wspólna lista zakupów</h1>
+    <main><a href="/summary">← Plan rodziny</a> · <a href="/shopping/biedronka">Połączenie kont Biedronki</a><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Wspólna lista zakupów</h1>
     <p>Historia z obu kart trafia do jednej listy. Wybierz produkty, które chcesz kupić. Ilości z paragonów opisują wcześniejsze zakupy, a nie obecne zapasy.</p>
     <details><summary>Dodaj paragony JSON z Biedronki</summary><p><label>Nazwa karty (opcjonalnie) <input id="account" maxlength="40" placeholder="np. karta Szymona"></label></p><input id="files" type="file" accept=".json,application/json" multiple><button id="import">Importuj</button><p>Przy imporcie z drugiej karty zmień nazwę. Ten sam paragon nie zostanie policzony ponownie.</p></details>
     <p><button id="propose">Wyślij propozycje na WhatsApp</button><button id="sendList">Wyślij listę na tablicę</button><br><small>Propozycje trafiają na grupę zakupową; odpowiedź numerami (np. 1 3 5) dodaje produkty i wysyła listę na grupę z planem rodziny.</small></p>
     <p id="message" role="status"></p><p id="totals"></p>
+    <h2>Okazje z gazetek</h2><p><small id="dealsInfo"></small> <button id="scanDeals">Sprawdź gazetki teraz</button></p><div id="deals"></div>
+    <details id="offersBox"><summary>Wszystko, co odczytano z gazetek</summary><p><input id="offerFilter" placeholder="Szukaj, np. mleko"> <small id="offerCount"></small></p><div id="leafletList"></div><table id="offers" style="width:100%;border-collapse:collapse;font-size:15px"></table></details>
     <h2>Do kupienia</h2><div id="confirmed"></div>
     <h2>Produkty do rozważenia</h2><p>Przy mniej niż trzech dniach zakupów produktu nie wyznaczamy terminu ponownego zakupu. Zakupy okazjonalne możesz odrzucić.</p><div id="suggested"></div>
     <details><summary>Kupione i odrzucone</summary><div id="archived"></div></details>
@@ -108,6 +125,26 @@ public static class ShoppingEndpoints
     async function whatsapp(path,done){try{const r=await api(path,{method:'POST'});$('message').textContent=done(r);}catch(e){$('message').textContent=e.message;}}
     $('propose').onclick=()=>whatsapp('/whatsapp/proposal',r=>'Wysłano '+r.sent+' propozycji. Odpowiedz numerami w grupie zakupowej.');
     $('sendList').onclick=()=>whatsapp('/whatsapp/list',()=>'Lista „Do kupienia” wysłana na tablicę.');
+    async function deals(){const d=await api('/deals');$('deals').replaceChildren();
+    $('dealsInfo').textContent=!d.enabled?'Wyłączone — dodaj ANTHROPIC_API_KEY w .env.':(d.checkedAt?'Sprawdzono '+new Date(d.checkedAt*1000).toLocaleString('pl-PL')+' · gazetek: '+d.leaflets.length:'Jeszcze nie sprawdzano.')+(d.error?' · Błąd: '+d.error:'')+(d.running?' · trwa czytanie gazetek…':'');if(d.running)setTimeout(()=>deals().catch(()=>{}),15000);
+    for(const m of d.deals){const card=document.createElement('article'),title=document.createElement('strong'),info=document.createElement('small'),link=document.createElement('a');
+    title.textContent=m.productName+(m.sameProduct?'':' → zamiennik: '+m.offer.name);
+    info.textContent=(m.offer.price!=null?m.offer.price.toLocaleString('pl-PL',{style:'currency',currency:'PLN'}):'promocja')+(m.offer.regularPrice!=null?' (zwykle '+m.offer.regularPrice.toLocaleString('pl-PL',{style:'currency',currency:'PLN'})+')':'')+(m.offer.conditions?' · '+m.offer.conditions:'')+(m.offer.validTo?' · do '+m.offer.validTo:'')+(m.note?' · '+m.note:'');
+    link.href=m.offer.leafletUrl+'#page='+(m.offer.page+1);link.target='_blank';link.rel='noreferrer';link.textContent='gazetka, str. '+(m.offer.page+1);
+    card.append(title,info,link,button('Dodaj do listy',()=>change({id:m.productId},'Confirmed')));$('deals').append(card);}
+    if(!d.deals.length)$('deals').textContent=d.enabled?'Brak aktualnych okazji na produkty, które kupujecie.':'';}
+    $('scanDeals').onclick=async()=>{$('scanDeals').disabled=true;$('message').textContent='Czytam gazetki — pierwsze sprawdzenie może potrwać kilka minut…';try{const r=await api('/deals/scan',{method:'POST'});$('message').textContent=r.started?'Czytam gazetki w tle. Wyniki pojawią się tutaj same.':'Gazetki są już czytane.';await deals();}catch(e){$('message').textContent=e.message;}finally{$('scanDeals').disabled=false;}};
+    let allOffers=[];
+    function showOffers(){const q=$('offerFilter').value.trim().toLowerCase(),rows=allOffers.filter(o=>!q||o.name.toLowerCase().includes(q));$('offers').replaceChildren();
+    const head=document.createElement('tr');for(const h of ['Produkt','Cena','Zwykle','Warunki','Ważne do','Gazetka'])head.append(Object.assign(document.createElement('th'),{textContent:h,style:'text-align:left;border-bottom:1px solid #ccc'}));$('offers').append(head);
+    for(const o of rows.slice(0,500)){const tr=document.createElement('tr'),a=Object.assign(document.createElement('a'),{href:o.leafletUrl+'#page='+(o.page+1),target:'_blank',rel:'noreferrer',textContent:o.leaflet+' s.'+(o.page+1)});
+    for(const v of [o.name,o.price!=null?o.price.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł':'',o.regularPrice!=null?o.regularPrice.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł':'',o.conditions||'',o.validTo||''])tr.append(Object.assign(document.createElement('td'),{textContent:v}));
+    const td=document.createElement('td');td.append(a);tr.append(td);$('offers').append(tr);}
+    $('offerCount').textContent='Pozycji: '+rows.length+(rows.length>500?' (pokazano 500)':'');}
+    $('offerFilter').oninput=showOffers;
+    $('offersBox').ontoggle=async()=>{if(!$('offersBox').open)return;try{const [o,d]=await Promise.all([api('/deals/offers'),api('/deals')]);allOffers=o;
+    $('leafletList').textContent=d.leaflets.map(l=>l.title+': przeczytano '+l.read+'/'+l.pages+' str., '+l.offers+' ofert').join(' · ');showOffers();}catch(e){$('offerCount').textContent=e.message;}};
+    deals().catch(()=>{});
     refresh().catch(()=>{$('message').textContent='Nie udało się odczytać listy. Odśwież stronę.';});
     </script></html>
     """;

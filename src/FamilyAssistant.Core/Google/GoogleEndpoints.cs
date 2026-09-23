@@ -59,7 +59,7 @@ public static class GoogleEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — kalendarze</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:760px;margin:32px auto;padding:28px;background:white;border-radius:18px}button{padding:12px 18px;margin:8px 8px 8px 0;cursor:pointer}label{display:block;padding:8px}li{margin:12px 0}#message{white-space:pre-wrap}small{color:#52685e}</style>
-    <main><h1>Kalendarze rodziny</h1><p id="status">Sprawdzam konfigurację…</p>
+    <main><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Kalendarze rodziny</h1><p id="status">Sprawdzam konfigurację…</p>
     <p id="setup" hidden>Zapisz plik klienta OAuth w <code>secrets/google-oauth.json</code>.
     Adres przekierowania w Google: <code>http://localhost:8080/google/callback</code>.</p>
     <form action="/google/connect" method="post"><input type="hidden" name="__RequestVerificationToken" value="{{TOKEN}}">

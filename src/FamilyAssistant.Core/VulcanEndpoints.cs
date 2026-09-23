@@ -80,7 +80,7 @@ public static class VulcanEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — szkoła</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:800px;margin:32px auto;padding:28px;background:white;border-radius:18px}button,input,select{padding:12px;margin:8px 0;max-width:100%;box-sizing:border-box}li{margin:12px 0}.warning{color:#904b00}#message{white-space:pre-wrap}</style>
-    <main><h1>Szkoła — eduVULCAN</h1><p id="status">Sprawdzam połączenie…</p>
+    <main><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Szkoła — eduVULCAN</h1><p id="status">Sprawdzam połączenie…</p>
     <details id="setup" open><summary>Połącz konto eduVULCAN</summary>
     <ol><li><a href="https://eduvulcan.pl/api/ap" target="_blank" rel="noopener noreferrer">Otwórz logowanie eduVULCAN</a> i zaloguj się na stronie dostawcy.</li>
     <li>Po powrocie na adres <strong>eduvulcan.pl/api/ap</strong> zapisz stronę przez <strong>Ctrl+S</strong>, jako „Strona internetowa, tylko HTML”. Strona może wyglądać na pustą.</li>

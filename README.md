@@ -13,6 +13,7 @@ Dodano opcjonalną trwałą kolejkę wysyłającą zaplanowane podsumowania:
 Instrukcja parowania i testu: [docs/WHATSAPP.md](docs/WHATSAPP.md).
 Kalendarze: [docs/GOOGLE-CALENDAR.md](docs/GOOGLE-CALENDAR.md), panel http://localhost:8080/google.
 Szkoła: [docs/VULCAN.md](docs/VULCAN.md), panel http://localhost:8080/vulcan.
+Pulpit ze wszystkimi modułami: http://localhost:8080/
 Podsumowanie: [docs/DAILY-SUMMARY.md](docs/DAILY-SUMMARY.md), panel http://localhost:8080/summary.
 Zakupy: [docs/SHOPPING.md](docs/SHOPPING.md), panel http://localhost:8080/shopping.
 Połączenie dwóch kont Biedronki: [docs/BIEDRONKA-CONNECTION.md](docs/BIEDRONKA-CONNECTION.md), panel http://localhost:8080/shopping/biedronka. Pierwsze logowanie i sprawdzenie pobierania wymagane przed uznaniem synchronizacji za uruchomioną.

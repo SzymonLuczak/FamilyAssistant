@@ -39,7 +39,7 @@ public static class PairingPage
     body{font:18px system-ui;margin:0;background:#f2f6f4;color:#183c30}
     main{max-width:540px;margin:40px auto;padding:28px;background:white;border-radius:20px;text-align:center}
     img{width:320px;max-width:100%;height:auto}p{line-height:1.6}small{color:#52685e}
-    </style><main><h1>Połącz WhatsApp</h1>
+    </style><main><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Połącz WhatsApp</h1>
     <p>W telefonie wybierz <b>Połączone urządzenia → Połącz urządzenie</b> i zeskanuj kod.</p>
     <p id="status" role="status">Sprawdzam połączenie…</p><img id="qr" hidden alt="Aktualny kod QR WhatsApp">
     <p><small>Kod odświeża się automatycznie. Wysyłka wiadomości pozostaje wyłączona w konfiguracji domyślnej.</small></p>

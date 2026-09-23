@@ -54,7 +54,7 @@ public static class SummaryEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — plan rodziny</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:850px;margin:32px auto;padding:28px;background:white;border-radius:18px}button{padding:12px 20px;margin:8px 10px 8px 0;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:17px/1.6 system-ui;background:#f1f6f3;padding:22px;border-radius:12px}#status,#message{line-height:1.6}.warning{color:#904b00}a{color:#176c52}li{margin:10px 0}</style>
-    <main><h1>Plan rodziny</h1><p>Szkoła, kalendarze i ustalone odbiory w jednym miejscu.</p>
+    <main><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Plan rodziny</h1><p>Szkoła, kalendarze i ustalone odbiory w jednym miejscu.</p>
     <p id="status">Sprawdzam ustawienia…</p>
     <button id="today">Przygotuj na dzisiaj</button><button id="tomorrow">Przygotuj na jutro</button>
     <p id="message" role="status"></p><pre id="preview" hidden></pre>

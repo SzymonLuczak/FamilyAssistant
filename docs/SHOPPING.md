@@ -37,3 +37,13 @@ Bramka zapisuje wyłącznie krótkie odpowiedzi złożone z liczb z grupy propoz
 ## Czytelne nazwy produktów
 
 `config/product-names.json` zamienia skróty z paragonów na czytelne nazwy (np. `ĆwiartkaKurczaVac kg` → „Ćwiartka z kurczaka (na wagę)”). Klucz to nazwa z paragonu wielkimi literami. Plik jest wczytywany ponownie po każdej zmianie, bez restartu. Produkty spoza słownika dostają automatyczne rozdzielenie słów i jednostek. Nazwa ustawiona ręcznie („Zmień nazwę”) ma pierwszeństwo. Słownik obejmuje 746 nazw z paragonów pobranych 23.09.2026; nowe produkty można do niego dopisywać.
+
+## Okazje z gazetek Biedronki
+
+Gazetki na biedronka.pl są publikowane wyłącznie jako obrazy stron (`/pl/gazetki` → `press,id,…` → `galleryLeaflet.init(<uuid>)` → `leaflet-api.prod.biedronka.cloud/api/leaflets/<uuid>` z listą obrazów). `LeafletScanner` czyta każdą stronę modelem Claude (vision), zapisuje oferty w `leaflets.json` na wolumenie danych i dopasowuje je do produktów kupowanych co najmniej w dwa różne dni. Każda strona jest czytana raz; kolejne sprawdzenia czytają tylko nowe gazetki.
+
+- Wersja standardowa (P). Pomijane domyślnie: wersja „z ladą” (`-l-oferta`), Home, znicze, Hity i Inspiracje, „Nie do wyrzucenia”, porównanie cen (`LeafletExclude`, regex na tytule).
+- Sprawdzanie co 12 h i przed propozycjami (pon./czw. 6:00), limit `LEAFLET_MAX_PAGES` stron na przebieg (domyślnie 120), przycisk „Sprawdź gazetki teraz” w `/shopping`.
+- W propozycjach WhatsApp produkt z promocją ma dopisek „🏷 cena, warunki, do dd.MM” i trafia wyżej na listę. `same=false` oznacza zamiennik tego samego rodzaju.
+- Wymaga `ANTHROPIC_API_KEY` w `.env` (console.anthropic.com), model `LEAFLET_MODEL` (domyślnie `claude-sonnet-5`). Koszt zależy od liczby stron; sprawdź aktualny cennik.
+- Wynik jest orientacyjny: model może źle odczytać cenę lub datę. Przed zakupem sprawdź gazetkę (link do strony przy każdej okazji). Ceny nie zależą od konkretnego sklepu — gazetka jest ogólnopolska (Skarżyńskiego 6 = wersja standardowa).

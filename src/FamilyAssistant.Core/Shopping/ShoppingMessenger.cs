@@ -12,7 +12,7 @@ public sealed record ShoppingProposal(string Id, long CreatedAt, string[] Produc
 
 // Proposals go to the shopping group; numeric replies there confirm products,
 // and the resulting list is posted to the family board group (the summary group).
-public sealed class ShoppingMessenger(ShoppingStore store, IHttpClientFactory clients, IConfiguration config, TimeProvider clock, ILogger<ShoppingMessenger> logger)
+public sealed class ShoppingMessenger(ShoppingStore store, IHttpClientFactory clients, IConfiguration config, TimeProvider clock, ILogger<ShoppingMessenger> logger, LeafletScanner leaflets)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     public bool Enabled => config.GetValue<bool>("Shopping:WhatsAppEnabled");
@@ -20,16 +20,31 @@ public sealed class ShoppingMessenger(ShoppingStore store, IHttpClientFactory cl
     private string ProposalPath => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(config["Shopping:DatabasePath"] ?? "/app/data/shopping.sqlite"))!, "shopping-proposal.json");
     private HttpClient Client => clients.CreateClient("whatsapp-delivery");
 
-    public static ProductView[] Candidates(IEnumerable<ProductView> products, int size) => products
+    public static ProductView[] Candidates(IEnumerable<ProductView> products, int size, ISet<string>? onOffer = null) => products
         .Where(p => p.Status == "Suggested" && p.PurchaseDays >= 2)
-        .OrderByDescending(p => p.MayRunOut).ThenBy(p => p.SuggestedDate ?? "9999").ThenByDescending(p => p.PurchaseDays).ThenBy(p => p.Name)
+        .OrderByDescending(p => p.MayRunOut).ThenByDescending(p => onOffer?.Contains(p.Id) == true).ThenBy(p => p.SuggestedDate ?? "9999").ThenByDescending(p => p.PurchaseDays).ThenBy(p => p.Name)
         .Take(size).ToArray();
 
-    public static string ProposalText(ProductView[] products)
+    public static string DealText(LeafletMatch deal)
+    {
+        var pl = System.Globalization.CultureInfo.GetCultureInfo("pl-PL");
+        var price = deal.Offer.Price is { } p ? p.ToString("0.00", pl) + " zł" : "promocja";
+        var parts = new List<string> { (deal.SameProduct ? "" : "zamiennik: " + deal.Offer.Name + " ") + price };
+        if (!string.IsNullOrWhiteSpace(deal.Offer.Conditions)) parts.Add(deal.Offer.Conditions!);
+        if (DateOnly.TryParse(deal.Offer.ValidTo, System.Globalization.CultureInfo.InvariantCulture, out var to)) parts.Add("do " + to.ToString("dd.MM", pl));
+        return "🏷 " + string.Join(", ", parts);
+    }
+
+    public static string ProposalText(ProductView[] products, IReadOnlyCollection<LeafletMatch>? deals = null)
     {
         var text = new StringBuilder("Propozycje zakupów — odpisz numerami, np. 1 3 5 albo 2-4:\n");
         for (var i = 0; i < products.Length; i++)
-            text.Append(i + 1).Append(". ").Append(products[i].Name).Append(products[i].MayRunOut ? " (może się kończyć)" : "").Append('\n');
+        {
+            text.Append(i + 1).Append(". ").Append(products[i].Name).Append(products[i].MayRunOut ? " (może się kończyć)" : "");
+            var deal = deals?.Where(d => d.ProductId == products[i].Id).OrderByDescending(d => d.SameProduct).ThenBy(d => d.Offer.Price ?? decimal.MaxValue).FirstOrDefault();
+            if (deal is not null) text.Append(" — ").Append(DealText(deal));
+            text.Append('\n');
+        }
         return text.ToString().TrimEnd();
     }
 
@@ -85,13 +100,14 @@ public sealed class ShoppingMessenger(ShoppingStore store, IHttpClientFactory cl
         try
         {
             var status = await Ready(token);
-            var products = Candidates((await store.Read()).Products, Math.Clamp(config.GetValue("Shopping:ProposalSize", 15), 1, 40));
+            var deals = await leaflets.ActiveMatches();
+            var products = Candidates((await store.Read()).Products, Math.Clamp(config.GetValue("Shopping:ProposalSize", 15), 1, 40), deals.Select(d => d.ProductId).ToHashSet());
             if (products.Length == 0) throw new ShoppingFailure("Brak produktów do zaproponowania (potrzeba co najmniej dwóch dni zakupów produktu).");
             var proposal = new ShoppingProposal(clock.GetUtcNow().ToString("yyyyMMddHHmmss"), clock.GetUtcNow().ToUnixTimeSeconds(), products.Select(p => p.Id).ToArray());
             Directory.CreateDirectory(Path.GetDirectoryName(ProposalPath)!);
             await File.WriteAllTextAsync(ProposalPath + ".tmp", JsonSerializer.Serialize(proposal), token);
             File.Move(ProposalPath + ".tmp", ProposalPath, true);
-            if (!await Send(status.ShoppingGroupId!, "shopping-proposal-" + proposal.Id, ProposalText(products), token))
+            if (!await Send(status.ShoppingGroupId!, "shopping-proposal-" + proposal.Id, ProposalText(products, deals), token))
                 throw new ShoppingFailure("Bramka WhatsApp jest zajęta. Spróbuj za chwilę.");
             return products.Length;
         }
@@ -162,12 +178,13 @@ public sealed class ShoppingMessenger(ShoppingStore store, IHttpClientFactory cl
         if (now < planned || now > planned.AddHours(3)) return;
         var last = await CurrentProposal();
         if (last is not null && last.CreatedAt >= planned.ToUnixTimeSeconds()) return;
+        await leaflets.RunIfDue(token); // fresh leaflet deals before the proposal
         try { await SendProposal(token); }
         catch (ShoppingFailure ex) { logger.LogWarning("Nie wysłano propozycji zakupów: {Reason}", ex.Message); }
     }
 }
 
-public sealed class ShoppingWhatsAppWorker(ShoppingMessenger messenger, ILogger<ShoppingWhatsAppWorker> logger) : BackgroundService
+public sealed class ShoppingWhatsAppWorker(ShoppingMessenger messenger, LeafletScanner leaflets, ILogger<ShoppingWhatsAppWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -175,7 +192,7 @@ public sealed class ShoppingWhatsAppWorker(ShoppingMessenger messenger, ILogger<
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
         do
         {
-            try { await messenger.ProcessReplies(stoppingToken); await messenger.SendScheduled(stoppingToken); }
+            try { await messenger.ProcessReplies(stoppingToken); await messenger.SendScheduled(stoppingToken); await leaflets.RunIfDue(stoppingToken); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch (Exception ex) when (ex is ShoppingFailure or HttpRequestException or TaskCanceledException or JsonException)
             { logger.LogWarning("Odpowiedzi zakupowe z WhatsApp poczekają: {Reason}", ex.Message); }

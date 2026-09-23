@@ -26,6 +26,11 @@ builder.Services.AddSingleton<ProductNames>();
 builder.Services.AddSingleton<ShoppingStore>();
 builder.Services.AddSingleton<BrowserReceiptInbox>();
 builder.Services.AddHostedService<ReceiptImportWorker>();
+builder.Services.AddSingleton<LeafletScanner>();
+builder.Services.AddHttpClient("biedronka", client => { client.Timeout = TimeSpan.FromSeconds(30); client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) FamilyAssistant/1.0"); });
+builder.Services.AddHttpClient("anthropic", client => client.Timeout = TimeSpan.FromMinutes(3));
+builder.Logging.AddFilter("System.Net.Http.HttpClient.biedronka", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient.anthropic", LogLevel.Warning);
 builder.Services.AddSingleton<ShoppingMessenger>();
 builder.Services.AddHostedService<ShoppingWhatsAppWorker>();
 builder.Services.AddSingleton<GoogleState>();
@@ -78,7 +83,7 @@ app.MapGet("/health/integrations", async (IHttpClientFactory clients, IConfigura
     }
     return Results.Ok(new { core = "ok", vulcan = await FamilyAssistant.Core.VulcanEndpoints.Status(clients, config), googleCalendar = await google.Status(), whatsapp });
 });
-app.MapGet("/", () => Results.Ok(new
+app.MapGet("/", (HttpContext context) => FamilyAssistant.Core.Dashboard.WantsHtml(context.Request) ? FamilyAssistant.Core.Dashboard.Page(context) : Results.Ok(new
 {
     service = "FamilyAssistant.Core",
     milestone = 5,
