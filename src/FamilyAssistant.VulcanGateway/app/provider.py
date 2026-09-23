@@ -3,6 +3,18 @@ from urllib.parse import urlsplit
 
 from iris.api import IrisHebeCeApi
 from iris.credentials import RsaCredential
+from iris.models import _message as iris_message
+
+
+def _allow_missing_class():
+    """Pinned Iris requires Sender.Extras.DisplayedClass, but eduVULCAN sends null for staff senders."""
+    field = iris_message.MessageAddressExtras.model_fields['displayed_class']
+    field.annotation, field.default = str | None, None
+    for model in (iris_message.MessageAddressExtras, iris_message.MessageAddress, iris_message.Message):
+        model.model_rebuild(force=True)
+
+
+_allow_missing_class()
 
 
 def safe_rest_url(url):
@@ -54,6 +66,28 @@ class Provider:
         finally:
             await api._http._client.close()
 
+    async def messages(self, credential):
+        """Received messages from every message box of the registered students (read-only)."""
+        api = IrisHebeCeApi(RsaCredential.model_validate(credential))
+        try:
+            async with asyncio.timeout(60):
+                boxes = {}
+                for account in await api.get_accounts():
+                    if account.message_box is None:
+                        continue
+                    url = safe_rest_url(account.unit.rest_url)
+                    key = (url, account.message_box.global_key)
+                    box = boxes.setdefault(key, {'pupil': account.pupil.id, 'students': []})
+                    box['students'].append(f'{account.pupil.first_name} {account.pupil.surname}')
+                result = {}
+                for (url, box_key), box in boxes.items():
+                    for item in await message_pages(api.get_received_messages, url, box_key, box['pupil']):
+                        message = normalize_message(item, box['students'])
+                        result.setdefault(message['id'], message)
+                return sorted(result.values(), key=lambda m: m['sentAt'])
+        finally:
+            await api._http._client.close()
+
     @staticmethod
     async def pages(method, url, pupil, day):
         items, seen, cursor = [], set(), -2147483648
@@ -91,3 +125,27 @@ def normalize(item, day, extra):
     return {'id': ('extra:' if extra else 'lesson:') + str(item.id), 'subject': subject,
             'start': slot.start.isoformat(), 'end': slot.end.isoformat(), 'status': status,
             'note': (sub.pupil_note or sub.reason or '') if sub else '', 'extra': extra}
+
+
+async def message_pages(method, url, box, pupil):
+    items, seen, cursor = [], set(), -2147483648
+    for _ in range(20):
+        page = await method(rest_url=url, box=box, pupil_id=pupil, last_id=cursor, page_size=100)
+        if not page:
+            return items
+        new = [item for item in page if item.global_key not in seen]
+        items.extend(new)
+        seen.update(item.global_key for item in page)
+        numeric = [int(item.id) for item in page if str(item.id).lstrip('-').isdigit()]
+        if len(page) < 100 or not new or not numeric or max(numeric) <= cursor:
+            return items
+        cursor = max(numeric)
+    raise ValueError('pagination_limit')
+
+
+def normalize_message(item, students):
+    return {'id': item.global_key, 'subject': item.subject or '(bez tematu)', 'content': item.content or '',
+            'sentAt': item.sent_at.isoformat(), 'sender': item.sender.name,
+            'receivers': [r.name for r in item.receiver][:20], 'students': students,
+            'attachments': [{'name': a.name, 'link': a.link} for a in item.attachments if a.link.startswith('https://')],
+            'withdrawn': bool(item.widthdrawn)}

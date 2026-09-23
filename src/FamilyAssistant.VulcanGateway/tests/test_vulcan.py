@@ -136,3 +136,41 @@ def test_http_errors_do_not_echo_export(monkeypatch, tmp_path):
         assert 'secret-do-not-echo' not in response.text
         assert client.get('/status').json() == {'connection': 'not_connected', 'students': []}
         assert client.post('/register', content='x' * 1_000_001).status_code == 413
+
+
+def test_messages_are_paged_deduplicated_and_normalized():
+    from datetime import datetime, timezone
+    from app.provider import message_pages, normalize_message
+    def msg(i, key=None):
+        return Obj(id=str(i), global_key=key or f'k{i}', subject=f'Temat {i}', content='<p>Treść</p>',
+                   sent_at=datetime(2026, 9, 1, 8, i % 60, tzinfo=timezone.utc), sender=Obj(name='Wychowawca'),
+                   receiver=[Obj(name='Rodzic')], widthdrawn=False,
+                   attachments=[Obj(name='plik.pdf', link='https://example.test/a'), Obj(name='x', link='javascript:x')])
+    calls = []
+    async def get(rest_url, box, pupil_id, last_id, page_size):
+        calls.append(last_id)
+        if last_id < 0:
+            return [msg(i) for i in range(1, 101)]
+        return [msg(100, 'k100'), msg(101)]
+    items = asyncio.run(message_pages(get, 'u', 'box', 1))
+    assert len(items) == 101 and calls == [-2147483648, 100]
+    normalized = normalize_message(items[0], ['Ala Kowalska'])
+    assert normalized['id'] == 'k1' and normalized['students'] == ['Ala Kowalska']
+    assert normalized['attachments'] == [{'name': 'plik.pdf', 'link': 'https://example.test/a'}]
+
+
+def test_messages_require_registration(tmp_path):
+    service = Service(tmp_path / 'state.json', FakeProvider())
+    with pytest.raises(Failure) as error:
+        asyncio.run(service.messages())
+    assert error.value.status == 409
+
+
+def test_iris_message_accepts_sender_without_class():
+    from iris.models import Message
+    import app.provider  # noqa: F401  (applies the model fix)
+    address = {'GlobalKey': 'g', 'Name': 'Anna Nowak', 'HasRead': None, 'Extras': {'DisplayedClass': None}}
+    message = Message.model_validate({'Id': '1', 'GlobalKey': 'k', 'ThreadKey': 't', 'Subject': 'S', 'Content': 'C',
+        'SentAt': '2026-09-23T08:00:00+02:00', 'ReadAt': None, 'Status': 1, 'Sender': address, 'Receiver': [address],
+        'Attachments': [], 'Withdrawn': False})
+    assert message.sender.extras.displayed_class is None

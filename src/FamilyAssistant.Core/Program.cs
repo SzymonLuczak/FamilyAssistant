@@ -13,6 +13,11 @@ builder.Services.AddHttpClient("whatsapp-delivery", client => client.Timeout = T
 builder.Logging.AddFilter("System.Net.Http.HttpClient.whatsapp-delivery", LogLevel.Warning);
 builder.Services.AddHttpClient("google", client => client.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddHttpClient("vulcan", client => client.Timeout = TimeSpan.FromSeconds(35));
+builder.Services.AddHttpClient("vulcan-messages", client => client.Timeout = TimeSpan.FromSeconds(90));
+builder.Logging.AddFilter("System.Net.Http.HttpClient.vulcan-messages", LogLevel.Warning);
+builder.Services.AddSingleton<FamilyAssistant.Core.IMailSender, FamilyAssistant.Core.SmtpMailSender>();
+builder.Services.AddSingleton<FamilyAssistant.Core.VulcanMailForwarder>();
+builder.Services.AddHostedService<FamilyAssistant.Core.VulcanMailWorker>();
 builder.Logging.AddFilter("System.Net.Http.HttpClient.vulcan", LogLevel.Warning);
 builder.Logging.AddFilter("System.Net.Http.HttpClient.google", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);

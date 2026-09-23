@@ -39,6 +39,16 @@ public static class VulcanEndpoints
         });
         app.MapGet("/vulcan", (HttpContext context, IAntiforgery csrf) => Results.Content(
             Page.Replace("{{TOKEN}}", HtmlEncoder.Default.Encode(csrf.GetAndStoreTokens(context).RequestToken!)), "text/html; charset=utf-8"));
+        app.MapGet("/vulcan/mail", async (VulcanMailForwarder forwarder) =>
+        {
+            var state = await forwarder.Read();
+            return Results.Ok(new { enabled = forwarder.Enabled, recipients = forwarder.Recipients, state.Initialized, state.CheckedAt, state.ForwardedCount, state.LastError });
+        });
+        app.MapPost("/vulcan/mail/check", async (HttpContext context, IAntiforgery csrf, VulcanMailForwarder forwarder) =>
+        {
+            await csrf.ValidateRequestAsync(context);
+            return Results.Ok(await forwarder.Run(context.RequestAborted));
+        });
         app.MapGet("/vulcan/status", (HttpContext context, IHttpClientFactory clients, IConfiguration config) =>
             Proxy(context, clients, config, "/status"));
         app.MapPost("/vulcan/register", async (HttpContext context, IAntiforgery csrf, IHttpClientFactory clients, IConfiguration config) =>
@@ -80,7 +90,19 @@ public static class VulcanEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — szkoła</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:800px;margin:32px auto;padding:28px;background:white;border-radius:18px}button,input,select{padding:12px;margin:8px 0;max-width:100%;box-sizing:border-box}li{margin:12px 0}.warning{color:#904b00}#message{white-space:pre-wrap}</style>
-    <main><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Szkoła — eduVULCAN</h1><p id="status">Sprawdzam połączenie…</p>
+    <main><script>(()=>{let t=null;try{t=localStorage.getItem('fa-theme')}catch{}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script><style>
+    html[data-theme=dark]{color-scheme:dark}
+    html[data-theme=dark] body{background:#0f1714!important;color:#dce8e2!important}
+    html[data-theme=dark] main{background:#18231f!important;box-shadow:0 1px 3px #0006}
+    html[data-theme=dark] a{color:#6fd3a8!important}
+    html[data-theme=dark] small{color:#9bb1a6!important}
+    html[data-theme=dark] .warning{color:#f0b35a!important}
+    html[data-theme=dark] pre,html[data-theme=dark] code{background:#101a16!important;color:#dce8e2!important}
+    html[data-theme=dark] article,html[data-theme=dark] th,html[data-theme=dark] td{border-color:#2c3a34!important}
+    html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea,html[data-theme=dark] button{background:#22302a;color:#dce8e2;border:1px solid #3a4b44;border-radius:6px}
+    html[data-theme=dark] img#qr{background:#fff;padding:10px;border-radius:8px}
+    #fa-theme-toggle{margin-left:auto;font:14px system-ui;padding:4px 12px;border-radius:14px;cursor:pointer}
+    </style><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a><button id="fa-theme-toggle" type="button" onclick="(()=>{const d=document.documentElement,n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('fa-theme',n)}catch{}this.textContent=n==='dark'?'☀️ Jasny':'🌙 Ciemny'})()">🌓 Motyw</button></nav><script>document.getElementById('fa-theme-toggle').textContent=document.documentElement.dataset.theme==='dark'?'☀️ Jasny':'🌙 Ciemny'</script><h1>Szkoła — eduVULCAN</h1><p id="status">Sprawdzam połączenie…</p>
     <details id="setup" open><summary>Połącz konto eduVULCAN</summary>
     <ol><li><a href="https://eduvulcan.pl/api/ap" target="_blank" rel="noopener noreferrer">Otwórz logowanie eduVULCAN</a> i zaloguj się na stronie dostawcy.</li>
     <li>Po powrocie na adres <strong>eduvulcan.pl/api/ap</strong> zapisz stronę przez <strong>Ctrl+S</strong>, jako „Strona internetowa, tylko HTML”. Strona może wyglądać na pustą.</li>
@@ -90,11 +112,16 @@ public static class VulcanEndpoints
     <p>Import zastępuje dotychczasowe konto i jego lokalne kopie planu. Nie zmienia danych w dzienniku. Integracja jest nieoficjalna i wymaga dostępu dostępnego dla Twojego konta.</p></details>
     <section id="schedule" hidden><h2>Plan zajęć</h2><label>Uczeń <select id="student"></select></label><br>
     <label>Data <input id="day" type="date"></label><br><button id="read">Pobierz plan</button><p id="summary"></p><ul id="lessons"></ul></section>
+    <h2>Wiadomości ze szkoły na e-mail</h2><p id="mail">…</p><button id="mailCheck">Sprawdź wiadomości teraz</button>
     <p id="message" role="status"></p><p><a href="/google">Kalendarze rodziny</a></p></main>
     <script>
     const $=id=>document.getElementById(id),token='{{TOKEN}}';
     const errors={registration_export_not_found:'W pliku nie ma danych rejestracji. Zapisz stronę po zalogowaniu, z adresu eduvulcan.pl/api/ap.',invalid_or_expired_export:'Dane wygasły lub są nieprawidłowe. Otwórz stronę eduVULCAN ponownie i zapisz świeży plik.',consent_required:'Dokończ wymagane zgody w eduVULCAN.',no_student_tokens:'Brak uczniów w danych rejestracji.',multiple_tenants_not_supported:'Ten import obejmuje różne jednostki eduVULCAN. Obsługa takiego konta wymaga rozszerzenia integracji.',registration_failed:'eduVULCAN nie potwierdził rejestracji. Konto nie zostało zastąpione. Nie ponawiaj wielokrotnie — sprawdzimy przyczynę.',provider_unavailable_no_snapshot:'Nie udało się odczytać planu. Brak zapisanej kopii dla tego dnia.',export_too_large:'Plik jest za duży. Zapisz stronę jako tylko HTML.'};
     async function api(path,options){const r=await fetch('/vulcan'+path,{cache:'no-store',...options});const data=await r.json();if(!r.ok)throw Error(errors[data.error]||'Nie udało się wykonać operacji. Spróbuj później.');return data;}
+    async function mail(){const m=await api('/mail');$('mail').textContent=!m.enabled?'Wyłączone — uzupełnij GMAIL_APP_PASSWORD i VULCAN_MAIL_TO w .env.':
+      'Nowe wiadomości trafiają do: '+m.recipients.join(', ')+'. '+(m.checkedAt?'Sprawdzono '+new Date(m.checkedAt*1000).toLocaleString('pl-PL')+'. ':'')+(m.initialized?'Przekazano: '+m.forwardedCount+'.':'Pierwsze sprawdzenie oznaczy dotychczasowe wiadomości jako przeczytane.')+(m.lastError?' Błąd: '+m.lastError:'');}
+    $('mailCheck').onclick=async()=>{$('mailCheck').disabled=true;$('message').textContent='Sprawdzam wiadomości…';try{const r=await api('/mail/check',{method:'POST',headers:{'X-CSRF-TOKEN':token}});$('message').textContent=r.initialized?'Zapamiętano '+r.existing+' dotychczasowych wiadomości. Przekazywane będą tylko nowe.':r.error?r.error:r.skipped?'Nie sprawdzono: '+r.skipped:'Przekazano nowych wiadomości: '+r.forwarded+(r.error?'. '+r.error:'');await mail();}catch(e){$('message').textContent=e.message;}finally{$('mailCheck').disabled=false;}};
+    mail().catch(()=>{});
     async function load(){const data=await api('/status');$('status').textContent=data.connection==='registered'?'Dostęp zarejestrowany. Odczytaj plan, aby sprawdzić połączenie.':'Konto nie jest połączone.';$('schedule').hidden=!data.students.length;$('setup').open=!data.students.length;$('student').replaceChildren();for(const s of data.students){const o=document.createElement('option');o.value=s.id;o.textContent=s.name+' · '+s.school+ (s.class?' · '+s.class:'');$('student').append(o);}}
     $('register').onclick=async()=>{const file=$('file').files[0];if(!file){$('message').textContent='Najpierw wybierz zapisany plik.';return;}if(file.size>1000000){$('message').textContent=errors.export_too_large;return;}$('register').disabled=true;$('message').textContent='Rejestruję dostęp…';try{await api('/register',{method:'POST',headers:{'X-CSRF-TOKEN':token,'Content-Type':'text/plain'},body:await file.text()});$('file').value='';$('lessons').replaceChildren();$('summary').textContent='';await load();$('message').textContent='Dostęp zapisany. Możesz usunąć pobrany plik.';}catch(e){$('message').textContent=e.message;}finally{$('register').disabled=false;}};
     $('read').onclick=async()=>{$('read').disabled=true;$('lessons').replaceChildren();$('summary').textContent='';$('message').textContent='Pobieram plan…';try{const d=await api('/students/'+encodeURIComponent($('student').value)+'/schedule/'+$('day').value);$('message').textContent=d.stale?'Uwaga: odczyt nie powiódł się. Pokazuję starą kopię z '+new Date(d.fetchedAt).toLocaleString('pl-PL'): 'Odczytano: '+new Date(d.fetchedAt).toLocaleString('pl-PL');$('message').className=d.stale?'warning':'';$('summary').textContent=d.requiresReview?'Zmiana planu wymaga sprawdzenia w eduVULCAN. Godzina odbioru nie została wyliczona.':d.firstLesson?'Zajęcia: '+d.firstLesson.slice(0,5)+'–'+d.lastLesson.slice(0,5):'Brak aktywnych zajęć w pobranym planie.';for(const l of d.lessons){const li=document.createElement('li');li.textContent=l.start.slice(0,5)+'–'+l.end.slice(0,5)+' '+l.subject+(l.status==='cancelled'?' — odwołane':l.status==='change_requires_review'?' — zmiana: sprawdź w dzienniku':'')+(l.note?' · '+l.note:'');$('lessons').append(li);}}catch(e){$('message').textContent=e.message;}finally{$('read').disabled=false;}};

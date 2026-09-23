@@ -23,6 +23,9 @@ services:
       Shopping__Account2Label: ${BIEDRONKA_ACCOUNT_2_LABEL:-Konto 2}
       Shopping__WhatsAppEnabled: ${SHOPPING_WHATSAPP_ENABLED:-false}
       Shopping__AnthropicApiKey: ${ANTHROPIC_API_KEY:-}
+      Mail__SmtpUser: ${GMAIL_USER:-}
+      Mail__SmtpPassword: ${GMAIL_APP_PASSWORD:-}
+      Mail__Recipients: ${VULCAN_MAIL_TO:-}
       Shopping__LeafletModel: ${LEAFLET_MODEL:-claude-sonnet-5}
       Shopping__LeafletMaxPagesPerRun: ${LEAFLET_MAX_PAGES:-120}
       Shopping__ProposalDay: ${SHOPPING_PROPOSAL_DAY:-}

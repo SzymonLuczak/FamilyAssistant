@@ -82,7 +82,19 @@ public static class ShoppingEndpoints
     private const string ConnectionPage = """
     <!doctype html><html lang="pl"><meta charset="utf-8"><title>Biedronka — dodatek</title>
     <style>body{font:18px system-ui;max-width:850px;margin:40px auto;padding:20px;line-height:1.6}code{overflow-wrap:anywhere}</style>
-    <nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Paragony z dwóch kont Biedronki</h1><p>Poprzednie okno noVNC zostało wyłączone.</p>
+    <script>(()=>{let t=null;try{t=localStorage.getItem('fa-theme')}catch{}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script><style>
+    html[data-theme=dark]{color-scheme:dark}
+    html[data-theme=dark] body{background:#0f1714!important;color:#dce8e2!important}
+    html[data-theme=dark] main{background:#18231f!important;box-shadow:0 1px 3px #0006}
+    html[data-theme=dark] a{color:#6fd3a8!important}
+    html[data-theme=dark] small{color:#9bb1a6!important}
+    html[data-theme=dark] .warning{color:#f0b35a!important}
+    html[data-theme=dark] pre,html[data-theme=dark] code{background:#101a16!important;color:#dce8e2!important}
+    html[data-theme=dark] article,html[data-theme=dark] th,html[data-theme=dark] td{border-color:#2c3a34!important}
+    html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea,html[data-theme=dark] button{background:#22302a;color:#dce8e2;border:1px solid #3a4b44;border-radius:6px}
+    html[data-theme=dark] img#qr{background:#fff;padding:10px;border-radius:8px}
+    #fa-theme-toggle{margin-left:auto;font:14px system-ui;padding:4px 12px;border-radius:14px;cursor:pointer}
+    </style><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a><button id="fa-theme-toggle" type="button" onclick="(()=>{const d=document.documentElement,n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('fa-theme',n)}catch{}this.textContent=n==='dark'?'☀️ Jasny':'🌙 Ciemny'})()">🌓 Motyw</button></nav><script>document.getElementById('fa-theme-toggle').textContent=document.documentElement.dataset.theme==='dark'?'☀️ Jasny':'🌙 Ciemny'</script><h1>Paragony z dwóch kont Biedronki</h1><p>Poprzednie okno noVNC zostało wyłączone.</p>
     <ol><li>Utwórz dwa profile zwykłego Chrome lub Edge, po jednym na konto.</li>
     <li>W każdym otwórz <code>chrome://extensions</code> lub <code>edge://extensions</code>. Włącz tryb dewelopera, wybierz „Załaduj rozpakowane” i wskaż <code>C:\development\FamilyAssistant\src\FamilyAssistant.BiedronkaExtension</code>.</li>
     <li>Zaloguj się na <a href="https://moja.biedronka.pl/panel/paragons">stronie Biedronki</a>. W dodatku wybierz Konto 1 lub 2, wpisz imię z powitania i zapisz ustawienia.</li>
@@ -97,7 +109,19 @@ public static class ShoppingEndpoints
     <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Family Assistant — zakupy</title>
     <style>body{font:17px system-ui;background:#f2f6f4;color:#173e30;margin:0}main{max-width:950px;margin:24px auto;padding:28px;background:white;border-radius:18px}button,input{font:inherit;padding:9px;margin:5px}button{cursor:pointer}article{border-bottom:1px solid #dce6df;padding:15px 0}small{display:block;color:#52685d}a{color:#176c52}#message{white-space:pre-wrap}h2{margin-top:32px}</style>
-    <main><a href="/summary">← Plan rodziny</a> · <a href="/shopping/biedronka">Połączenie kont Biedronki</a><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav><h1>Wspólna lista zakupów</h1>
+    <main><a href="/summary">← Plan rodziny</a> · <a href="/shopping/biedronka">Połączenie kont Biedronki</a><script>(()=>{let t=null;try{t=localStorage.getItem('fa-theme')}catch{}document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')})()</script><style>
+    html[data-theme=dark]{color-scheme:dark}
+    html[data-theme=dark] body{background:#0f1714!important;color:#dce8e2!important}
+    html[data-theme=dark] main{background:#18231f!important;box-shadow:0 1px 3px #0006}
+    html[data-theme=dark] a{color:#6fd3a8!important}
+    html[data-theme=dark] small{color:#9bb1a6!important}
+    html[data-theme=dark] .warning{color:#f0b35a!important}
+    html[data-theme=dark] pre,html[data-theme=dark] code{background:#101a16!important;color:#dce8e2!important}
+    html[data-theme=dark] article,html[data-theme=dark] th,html[data-theme=dark] td{border-color:#2c3a34!important}
+    html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea,html[data-theme=dark] button{background:#22302a;color:#dce8e2;border:1px solid #3a4b44;border-radius:6px}
+    html[data-theme=dark] img#qr{background:#fff;padding:10px;border-radius:8px}
+    #fa-theme-toggle{margin-left:auto;font:14px system-ui;padding:4px 12px;border-radius:14px;cursor:pointer}
+    </style><nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a><button id="fa-theme-toggle" type="button" onclick="(()=>{const d=document.documentElement,n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('fa-theme',n)}catch{}this.textContent=n==='dark'?'☀️ Jasny':'🌙 Ciemny'})()">🌓 Motyw</button></nav><script>document.getElementById('fa-theme-toggle').textContent=document.documentElement.dataset.theme==='dark'?'☀️ Jasny':'🌙 Ciemny'</script><h1>Wspólna lista zakupów</h1>
     <p>Historia z obu kart trafia do jednej listy. Wybierz produkty, które chcesz kupić. Ilości z paragonów opisują wcześniejsze zakupy, a nie obecne zapasy.</p>
     <details><summary>Dodaj paragony JSON z Biedronki</summary><p><label>Nazwa karty (opcjonalnie) <input id="account" maxlength="40" placeholder="np. karta Szymona"></label></p><input id="files" type="file" accept=".json,application/json" multiple><button id="import">Importuj</button><p>Przy imporcie z drugiej karty zmień nazwę. Ten sam paragon nie zostanie policzony ponownie.</p></details>
     <p><button id="propose">Wyślij propozycje na WhatsApp</button><button id="sendList">Wyślij listę na tablicę</button><br><small>Propozycje trafiają na grupę zakupową; odpowiedź numerami (np. 1 3 5) dodaje produkty i wysyła listę na grupę z planem rodziny.</small></p>

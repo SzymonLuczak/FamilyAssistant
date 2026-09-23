@@ -61,3 +61,13 @@ Wersja przypięta do commita `3d5d85bc3653dfebb6231a7f886c76aa09112844`.
 Iris: AGPL-3.0-only, pełny tekst w `docs/third-party/iris-LICENSE`.
 Nieoficjalny interfejs może ulec zmianie. Walidacja modeli Iris zgłasza
 ostrzeżenia Pydantic; adapter nie wyłącza walidacji odpowiedzi planu.
+
+## Wiadomości ze szkoły na e-mail
+
+Gateway udostępnia `GET /messages` — odebrane wiadomości ze skrzynek wszystkich zarejestrowanych uczniów (tylko odczyt, bez oznaczania jako przeczytane). Core co 15 minut pobiera je i przekazuje nowe e-mailem przez SMTP Gmaila na adresy z `VULCAN_MAIL_TO`.
+
+- Konfiguracja w `.env`: `GMAIL_USER`, `GMAIL_APP_PASSWORD` (hasło do aplikacji z https://myaccount.google.com/apppasswords, wymaga weryfikacji dwuetapowej), `VULCAN_MAIL_TO` (adresy po przecinku).
+- Pierwsze udane sprawdzenie tylko zapamiętuje istniejące wiadomości; przekazywane są wyłącznie nowsze.
+- Każda wiadomość jest oznaczana od razu po wysłaniu (nigdy dwa razy). Błąd SMTP przerywa przebieg; ta sama wiadomość zostanie wysłana przy następnym.
+- Wycofane wiadomości są pomijane. Załączniki trafiają jako linki; odpowiadać trzeba w eduVULCAN.
+- Stan: `vulcan-mail.json` na wolumenie `family-data`; panel `/vulcan` pokazuje licznik i ostatni błąd, przycisk „Sprawdź wiadomości teraz”.

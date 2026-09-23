@@ -3,7 +3,6 @@ namespace FamilyAssistant.Core;
 // One start page for all panels. Each tile reads the existing status endpoints of its module.
 public static class Dashboard
 {
-    public const string Nav = """<nav style="font:15px system-ui;margin:0 0 18px;display:flex;gap:14px;flex-wrap:wrap"><a href="/">🏠 Pulpit</a><a href="/summary">Plan rodziny</a><a href="/shopping">Zakupy</a><a href="/vulcan">Szkoła</a><a href="/google">Kalendarze</a><a href="/whatsapp/pair">WhatsApp</a><a href="/shopping/biedronka">Biedronka</a></nav>""";
 
     public static bool WantsHtml(HttpRequest request) => request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase);
 

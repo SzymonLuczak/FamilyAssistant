@@ -55,6 +55,11 @@ async def schedule(student_id: str, day: date):
     return await service.schedule(student_id, day)
 
 
+@app.get('/messages')
+async def messages():
+    return await service.messages()
+
+
 @app.get("/health")
 def health():
     return {"status": "healthy"}

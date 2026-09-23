@@ -60,6 +60,29 @@ class Service:
             self.failures, self.blocked_until = 0, 0
             return self.status()
 
+    async def messages(self):
+        async with self.lock:
+            state = self.load()
+            if not state:
+                raise Failure('not_connected', 409)
+            if time.monotonic() < self.blocked_until:
+                raise Failure('provider_unavailable')
+            try:
+                result = await self.provider.messages(state['credential'])
+                self.failures = 0
+                return result
+            except Exception as ex:
+                # Log only the error type, never provider payloads.
+                import re, traceback
+                where = [f'{f.name}:{f.lineno}' for f in traceback.extract_tb(ex.__traceback__)][-4:]
+                # Error text without tokens/keys (long base64-like runs are masked).
+                text = re.sub(r'[A-Za-z0-9+/=_-]{32,}', '***', str(ex))[:300]
+                print(json.dumps({'event': 'messages_failed', 'type': type(ex).__name__, 'text': text, 'where': where}), flush=True)
+                self.failures += 1
+                if self.failures >= 3:
+                    self.blocked_until = time.monotonic() + 30
+                raise Failure('provider_unavailable') from None
+
     async def schedule(self, student_id, day):
         async with self.lock:
             state = self.load()
