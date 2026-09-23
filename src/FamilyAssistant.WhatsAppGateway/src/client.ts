@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import type { WhatsAppPort } from "./gateway.js";
 import { readGroupSummaries } from "./group-reader.js";
+import { readRecentMessages } from "./message-reader.js";
 
 // Keep upstream's inconsistent declaration files behind our tested adapter contract.
 const whatsapp = createRequire(import.meta.url)("whatsapp-web.js") as {
@@ -32,5 +33,7 @@ export function createClient(): WhatsAppPort {
     qrMaxRetries: 0,
   });
   client.getChats = () => client.pupPage.evaluate(readGroupSummaries);
+  // Read only recent messages of one allowed chat; the gateway filters them to numeric replies.
+  client.recentMessages = (chatId: string) => (client.pupPage as any).evaluate(readRecentMessages, chatId);
   return client;
 }

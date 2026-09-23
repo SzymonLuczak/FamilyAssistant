@@ -95,3 +95,7 @@ Core pokazuje stan WhatsApp w /health/integrations i pozostaje dostępny przy
 awarii gatewaya. Nie ma jeszcze harmonogramu, komend przychodzących ani outboxa.
 Rejestr ID nie ma automatycznego czyszczenia; dotyczy niewielkiej liczby testów M2.
 Ograniczenia zależności i retry opisano w `decisions/0002-whatsapp.md`.
+
+## Grupa propozycji zakupów
+
+`./scripts/whatsapp.ps1 select-shopping-group -GroupId 'ID_Z_LISTY'` wybiera drugą dozwoloną grupę — na propozycje zakupów. Bramka przyjmuje z niej tylko odpowiedzi złożone z liczb (np. `1 3 5`). Szczegóły: [SHOPPING.md](SHOPPING.md).

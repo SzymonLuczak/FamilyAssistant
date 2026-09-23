@@ -11,6 +11,7 @@ const gateway = new Gateway(createClient, process.env.WHATSAPP_STATE_PATH ?? "/a
 await gateway.load();
 const server = createApp(gateway);
 if (process.env.WHATSAPP_AUTO_CONNECT === "true") await gateway.start();
+setInterval(() => void gateway.pollShoppingGroup(), 15000).unref();
 server.listen(port, "0.0.0.0", () => console.log(`WhatsApp gateway skeleton listening on ${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {

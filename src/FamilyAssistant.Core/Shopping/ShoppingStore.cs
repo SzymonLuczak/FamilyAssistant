@@ -44,6 +44,8 @@ public sealed record ShoppingView(Purchase[] Receipts, ProductView[] Products);
 
 public sealed class ShoppingStore(IConfiguration config, TimeProvider clock)
 {
+    public ShoppingStore(IConfiguration config, TimeProvider clock, ProductNames names) : this(config, clock) => this.names = names;
+    private readonly ProductNames? names;
     private readonly SemaphoreSlim gate = new(1, 1);
     private async Task<ShoppingDatabase> Open()
     {
@@ -143,7 +145,7 @@ public sealed class ShoppingStore(IConfiguration config, TimeProvider clock)
                     reason = stale ? "Dawny zakup — wzorzec może być nieaktualny. Sprawdź, czy nadal kupujecie ten produkt." :
                         "Może wymagać uzupełnienia około " + expected + ". Oszacowanie uwzględnia ilość ostatniego zakupu i tempo poprzednich zakupów. Sprawdź zapasy.";
                 }
-                return new ProductView(p.Id, p.Name, p.Status, days.Length, last.ToString("yyyy-MM-dd"), lastQuantity, history.Select(l => lookup[l.ReceiptId].Account).Distinct().ToArray(), reason, expected is null ? 0.1 : 0.5, expected, history.Sum(l => l.Quantity), interval, dailyQuantity, mayRunOut);
+                return new ProductView(p.Id, names?.Display(p.Name) ?? p.Name, p.Status, days.Length, last.ToString("yyyy-MM-dd"), lastQuantity, history.Select(l => lookup[l.ReceiptId].Account).Distinct().ToArray(), reason, expected is null ? 0.1 : 0.5, expected, history.Sum(l => l.Quantity), interval, dailyQuantity, mayRunOut);
             }).OrderByDescending(p => p.MayRunOut).ThenByDescending(p => p.PurchaseDays).ThenBy(p => p.Name).ToArray());
         }
         finally { gate.Release(); }

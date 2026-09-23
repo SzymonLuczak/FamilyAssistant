@@ -1,6 +1,6 @@
-param(
+﻿param(
     [Parameter(Mandatory)]
-    [ValidateSet('start', 'status', 'qr', 'groups', 'select-group', 'test-message')]
+    [ValidateSet('start', 'status', 'qr', 'groups', 'select-group', 'select-shopping-group', 'test-message')]
     [string]$Action,
     [string]$GroupId,
     [string]$Text = 'Family Assistant — ręczny test połączenia.',
@@ -18,6 +18,10 @@ try {
         'select-group' {
             if (-not $GroupId) { throw 'Podaj -GroupId z listy groups.' }
             $request = @{ path = '/config/group'; method = 'PUT'; body = @{ groupId = $GroupId } }
+        }
+        'select-shopping-group' {
+            if (-not $GroupId) { throw 'Podaj -GroupId grupy propozycji zakupów z listy groups.' }
+            $request = @{ path = '/config/shopping-group'; method = 'PUT'; body = @{ groupId = $GroupId } }
         }
         'test-message' {
             $statusJson = '{"path":"/status"}' | docker compose exec -T whatsapp-gateway node dist/src/admin.js

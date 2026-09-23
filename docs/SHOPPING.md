@@ -21,3 +21,19 @@ Identyfikator urządzenia fiskalnego, pamięci i dokumentu tworzy klucz deduplik
 Produkty łączą się wyłącznie po nazwie bez końcowej litery VAT, z ujednoliconymi odstępami i wielkością liter. Nie łączymy automatycznie różnych marek ani gramatur. „Zmień nazwę” ustawia czytelną etykietę bez zmiany klucza kolejnych importów. Łączenie różnych skrótów tego samego produktu pozostaje kolejnym etapem.
 
 Statusy: propozycja, do kupienia, kupione, odrzucone. Import nie nadpisuje decyzji użytkownika. Kupione i odrzucone produkty można ponownie dodać ręcznie. Po trzech różnych dniach zakupu pojawia się orientacyjna data kolejnego zakupu: ostatnia data plus mediana odstępów. Nie jest to pomiar zużycia ani zapasów; duże zakupy promocyjne mogą zaburzać wynik. Wcześniej produkty są tylko kandydatami do ręcznego wyboru. Jednostek nie zgadujemy, jeśli brak ich w źródle. Lista zakupów nie wysyła wiadomości WhatsApp.
+
+## Propozycje i lista na WhatsApp
+
+Przepływ: propozycje → grupa „Proponowane Zakupy”, odpowiedź numerami → lista na grupę „Tablica informacyjna” (ta sama grupa co plan rodziny).
+
+1. Utwórz na WhatsApp grupę „Proponowane Zakupy” z kontem połączonym z Family Assistant.
+2. `./scripts/whatsapp.ps1 groups`, a następnie `./scripts/whatsapp.ps1 select-shopping-group -GroupId 'ID_GRUPY'`.
+3. W `.env`: `SHOPPING_WHATSAPP_ENABLED=true` (wymaga też `WHATSAPP_SEND_ENABLED=true`), opcjonalnie `SHOPPING_PROPOSAL_DAY=Monday,Thursday` (jeden lub więcej dni po przecinku) i `SHOPPING_PROPOSAL_TIME=16:00` dla automatycznej wysyłki; spóźnione uruchomienie wysyła propozycje do 3 godzin po czasie. Potem `docker compose up --build -d --wait`.
+4. Propozycje wysyła przycisk „Wyślij propozycje na WhatsApp” w `/shopping` albo harmonogram. Lista zawiera do 15 produktów o statusie „propozycja”, kupowanych w co najmniej dwa różne dni; najpierw te, które „mogą się kończyć”.
+5. Odpowiedz w grupie numerami, np. `1 3 5` lub `2-4`. Core co 20 s odbiera odpowiedź, oznacza produkty jako „do kupienia”, wysyła pełną listę „Do kupienia” na tablicę i potwierdzenie w grupie propozycji. Kolejne odpowiedzi dopisują produkty do tej samej listy.
+
+Bramka zapisuje wyłącznie krótkie odpowiedzi złożone z liczb z grupy propozycji; inne wiadomości nie są odczytywane ani przechowywane. Wysyłać może tylko do dwóch wybranych grup. Numery odnoszą się do ostatnio wysłanych propozycji. Oznaczanie „kupione” pozostaje na stronie `/shopping`.
+
+## Czytelne nazwy produktów
+
+`config/product-names.json` zamienia skróty z paragonów na czytelne nazwy (np. `ĆwiartkaKurczaVac kg` → „Ćwiartka z kurczaka (na wagę)”). Klucz to nazwa z paragonu wielkimi literami. Plik jest wczytywany ponownie po każdej zmianie, bez restartu. Produkty spoza słownika dostają automatyczne rozdzielenie słów i jednostek. Nazwa ustawiona ręcznie („Zmień nazwę”) ma pierwszeństwo. Słownik obejmuje 746 nazw z paragonów pobranych 23.09.2026; nowe produkty można do niego dopisywać.

@@ -44,6 +44,19 @@ public static class ShoppingEndpoints
             var added = await store.Import(receipt, context.Request.Query["account"].ToString());
             return Results.Ok(new { added, items = receipt.Lines.Length, total = receipt.Total });
         });
+        app.MapPost("/shopping/whatsapp/proposal", async (HttpContext context, IAntiforgery csrf, ShoppingMessenger messenger) =>
+        {
+            await csrf.ValidateRequestAsync(context);
+            if (!messenger.Enabled) throw new ShoppingFailure("Wysyłka zakupów na WhatsApp jest wyłączona (SHOPPING_WHATSAPP_ENABLED).");
+            return Results.Ok(new { sent = await messenger.SendProposal(context.RequestAborted) });
+        });
+        app.MapPost("/shopping/whatsapp/list", async (HttpContext context, IAntiforgery csrf, ShoppingMessenger messenger) =>
+        {
+            await csrf.ValidateRequestAsync(context);
+            if (!messenger.Enabled) throw new ShoppingFailure("Wysyłka zakupów na WhatsApp jest wyłączona (SHOPPING_WHATSAPP_ENABLED).");
+            await messenger.SendList(context.RequestAborted);
+            return Results.Ok(new { sent = true });
+        });
         app.MapPost("/shopping/products/{id}", async (string id, UpdateRequest request, HttpContext context, IAntiforgery csrf, ShoppingStore store) =>
         {
             await csrf.ValidateRequestAsync(context);
@@ -72,6 +85,7 @@ public static class ShoppingEndpoints
     <main><a href="/summary">← Plan rodziny</a> · <a href="/shopping/biedronka">Połączenie kont Biedronki</a><h1>Wspólna lista zakupów</h1>
     <p>Historia z obu kart trafia do jednej listy. Wybierz produkty, które chcesz kupić. Ilości z paragonów opisują wcześniejsze zakupy, a nie obecne zapasy.</p>
     <details><summary>Dodaj paragony JSON z Biedronki</summary><p><label>Nazwa karty (opcjonalnie) <input id="account" maxlength="40" placeholder="np. karta Szymona"></label></p><input id="files" type="file" accept=".json,application/json" multiple><button id="import">Importuj</button><p>Przy imporcie z drugiej karty zmień nazwę. Ten sam paragon nie zostanie policzony ponownie.</p></details>
+    <p><button id="propose">Wyślij propozycje na WhatsApp</button><button id="sendList">Wyślij listę na tablicę</button><br><small>Propozycje trafiają na grupę zakupową; odpowiedź numerami (np. 1 3 5) dodaje produkty i wysyła listę na grupę z planem rodziny.</small></p>
     <p id="message" role="status"></p><p id="totals"></p>
     <h2>Do kupienia</h2><div id="confirmed"></div>
     <h2>Produkty do rozważenia</h2><p>Przy mniej niż trzech dniach zakupów produktu nie wyznaczamy terminu ponownego zakupu. Zakupy okazjonalne możesz odrzucić.</p><div id="suggested"></div>
@@ -91,6 +105,9 @@ public static class ShoppingEndpoints
     for(const id of ['confirmed','suggested','archived'])if(!$(id).children.length)$(id).textContent=id==='confirmed'?'Lista jest pusta. Dodaj produkty z propozycji poniżej.':'Brak produktów.';
     for(const r of d.receipts){const row=document.createElement('p');row.textContent=new Date(r.purchasedAt*1000).toLocaleDateString('pl-PL',{timeZone:'Europe/Warsaw'})+' · '+money(r.total)+' · '+(r.account||'Karta nieoznaczona');$('receipts').append(row);}}
     $('import').onclick=async()=>{$('import').disabled=true;const messages=[];try{if(!$('files').files.length)throw Error('Wybierz co najmniej jeden plik JSON.');for(const f of $('files').files){try{if(f.size>8388608)throw Error('Maksymalny rozmiar to 8 MB.');const r=await api('/import?account='+encodeURIComponent($('account').value),{method:'POST',headers:{'Content-Type':'application/json'},body:f});messages.push(f.name+': '+(r.added?'dodano '+r.items+' pozycji, '+money(r.total):'już zaimportowany'));}catch(e){messages.push(f.name+': '+e.message);}}await refresh();$('message').textContent=messages.join('\\n');}catch(e){$('message').textContent=e.message;}finally{$('import').disabled=false;}};
+    async function whatsapp(path,done){try{const r=await api(path,{method:'POST'});$('message').textContent=done(r);}catch(e){$('message').textContent=e.message;}}
+    $('propose').onclick=()=>whatsapp('/whatsapp/proposal',r=>'Wysłano '+r.sent+' propozycji. Odpowiedz numerami w grupie zakupowej.');
+    $('sendList').onclick=()=>whatsapp('/whatsapp/list',()=>'Lista „Do kupienia” wysłana na tablicę.');
     refresh().catch(()=>{$('message').textContent='Nie udało się odczytać listy. Odśwież stronę.';});
     </script></html>
     """;

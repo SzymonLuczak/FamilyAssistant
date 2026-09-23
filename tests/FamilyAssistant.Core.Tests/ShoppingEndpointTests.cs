@@ -9,6 +9,8 @@ public sealed class ShoppingEndpointTests : IClassFixture<WebApplicationFactory<
     [Theory]
     [InlineData("/shopping/import")]
     [InlineData("/shopping/biedronka/enable")]
+    [InlineData("/shopping/whatsapp/proposal")]
+    [InlineData("/shopping/whatsapp/list")]
     public async Task MutationsRequireFormToken(string path) => Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync(path, new StringContent("{}"))).StatusCode);
     [Fact]
     public async Task ConnectionLinksRejectForeignHost()

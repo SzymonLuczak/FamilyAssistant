@@ -14,6 +14,7 @@ class Fake extends EventEmitter implements WhatsAppPort {
     this.reads++;
     if (this.failReads-- > 0) throw new Error("offline");
     return [{ isGroup: true, id: { _serialized: "family@g.us" }, name: "Family" },
+      { isGroup: true, id: { _serialized: "shopping@g.us" }, name: "Shopping" },
       { isGroup: false, id: { _serialized: "person@c.us" }, name: "Person" }];
   }
   async sendMessage() { this.sent++; if (this.failSend) throw new Error("unknown delivery"); }
@@ -68,7 +69,7 @@ test("ambiguous delivery is persisted and never automatically retried", async t 
 });
 test("read retries bounded; circuit opens after repeated failures", async t => {
   const { gateway, client } = await setup(t);
-  client.failReads = 2; assert.equal((await gateway.groups()).length, 1); assert.equal(client.reads, 3);
+  client.failReads = 2; assert.equal((await gateway.groups()).length, 2); assert.equal(client.reads, 3);
   client.failReads = 20;
   for (let i = 0; i < 3; i++) await assert.rejects(gateway.groups(), /groups_unavailable/);
   assert.equal(client.reads, 12);
@@ -80,4 +81,36 @@ test("timed-out send cannot be retried", async t => {
   client.sendMessage = () => { client.sent++; return new Promise(() => {}); };
   assert.equal((await gateway.send("slow", "Hello")).status, "unknown");
   await gateway.send("slow", "Hello"); assert.equal(client.sent, 1);
+});
+test("shopping group: only numeric replies from that group are kept; sends allowed there", async t => {
+  const { gateway, client, directory } = await setup(t, true);
+  await gateway.selectGroup("family@g.us");
+  const reply = (id: string, remote: string, body: string) => ({ id: { _serialized: id, remote }, body, timestamp: 1 });
+  await gateway.receive(reply("a", "shopping@g.us", "1 3")); // ignored: group not selected yet
+  await gateway.selectShoppingGroup("shopping@g.us");
+  await gateway.receive(reply("b", "family@g.us", "1 2"));
+  await gateway.receive(reply("c", "shopping@g.us", "Kupiłem mleko"));
+  await gateway.receive(reply("d", "shopping@g.us", " 1, 3-5 "));
+  await gateway.receive(reply("d", "shopping@g.us", " 1, 3-5 "));
+  assert.deepEqual(gateway.inbox().map(m => [m.id, m.text]), [["d", "1, 3-5"]]);
+  const next = new Gateway(() => client, directory, true); await next.load();
+  assert.equal(next.inbox().length, 1);
+  await gateway.acknowledge(["d"]); assert.equal(gateway.inbox().length, 0);
+  assert.equal((await gateway.send("p1", "Propozycje", "shopping@g.us")).status, "sent");
+  await assert.rejects(gateway.send("p2", "x", "other@g.us"), /group_not_allowed/);
+  assert.equal(gateway.status().shoppingGroupId, "shopping@g.us");
+});
+test("polling fallback queues numeric replies once and only after the latest proposal", async t => {
+  const { gateway, client } = await setup(t, true);
+  await gateway.selectGroup("family@g.us"); await gateway.selectShoppingGroup("shopping@g.us");
+  await gateway.send("shopping-proposal-1", "1. Mleko", "shopping@g.us");
+  const now = Math.floor(Date.now() / 1000);
+  (client as any).recentMessages = async () => ({ found: true, loaded: 0, messages: [
+    { id: { _serialized: "old", remote: { _serialized: "shopping@g.us" } }, body: "1", timestamp: now - 3600 },
+    { id: { _serialized: "new", fromMe: true, remote: { _serialized: "shopping@g.us" } }, to: "shopping@g.us", body: "2-4", timestamp: now + 1 },
+    { id: { _serialized: "chat", remote: "shopping@g.us" }, body: "ok, kupię", timestamp: now + 2 }] });
+  await gateway.pollShoppingGroup(); await gateway.pollShoppingGroup();
+  assert.deepEqual(gateway.inbox().map(m => m.id), ["new"]);
+  await gateway.acknowledge(["new"]); await gateway.pollShoppingGroup();
+  assert.equal(gateway.inbox().length, 0);
 });

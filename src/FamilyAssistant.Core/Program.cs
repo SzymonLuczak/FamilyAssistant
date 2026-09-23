@@ -1,6 +1,7 @@
 using FamilyAssistant.Core.Google;
 using FamilyAssistant.Core.Summary;
 using Quartz;
+using Microsoft.AspNetCore.DataProtection;
 using FamilyAssistant.Core.Shopping;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,10 +17,17 @@ builder.Logging.AddFilter("System.Net.Http.HttpClient.vulcan", LogLevel.Warning)
 builder.Logging.AddFilter("System.Net.Http.HttpClient.google", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
+// Keep form-token keys across container rebuilds (otherwise open pages fail after an update).
+var keyDirectory = builder.Configuration["DataProtection:KeyDirectory"] ?? "/app/data/keys";
+if (Directory.Exists(Path.GetDirectoryName(keyDirectory)))
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keyDirectory));
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ProductNames>();
 builder.Services.AddSingleton<ShoppingStore>();
 builder.Services.AddSingleton<BrowserReceiptInbox>();
 builder.Services.AddHostedService<ReceiptImportWorker>();
+builder.Services.AddSingleton<ShoppingMessenger>();
+builder.Services.AddHostedService<ShoppingWhatsAppWorker>();
 builder.Services.AddSingleton<GoogleState>();
 builder.Services.AddSingleton<GoogleAuthorization>();
 builder.Services.AddSingleton<GoogleCalendarReader>();
