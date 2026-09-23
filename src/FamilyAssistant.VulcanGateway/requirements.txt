@@ -1,0 +1,3 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+iris @ https://github.com/bbrjpl1310b/iris/archive/3d5d85bc3653dfebb6231a7f886c76aa09112844.zip

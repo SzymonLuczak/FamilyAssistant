@@ -1,0 +1,68 @@
+name: family-assistant
+x-defaults: &defaults
+  restart: unless-stopped
+  networks: [family-assistant-network]
+  logging:
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  family-core:
+    networks: [family-assistant-network, host-access]
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.Core/Dockerfile
+    <<: *defaults
+    environment:
+      TZ: ${TZ:-Europe/Warsaw}
+      ASPNETCORE_ENVIRONMENT: Production
+      Gateways__WhatsApp: http://whatsapp-gateway:3000
+      Gateways__Vulcan: http://vulcan-gateway:8000
+      Summary__SchedulerEnabled: ${SUMMARY_SCHEDULER_ENABLED:-true}
+      Google__TimeZone: ${TZ:-Europe/Warsaw}
+      Google__RedirectUri: http://localhost:${CORE_PORT:-8080}/google/callback
+      WHATSAPP_SEND_ENABLED: ${WHATSAPP_SEND_ENABLED:-false}
+    ports:
+      - "127.0.0.1:${CORE_PORT:-8080}:8080"
+    volumes:
+      - family-data:/app/data
+      - google-token:/app/secrets/google
+      - ./secrets:/app/config-secrets:ro
+      - ./config:/app/config:ro
+  vulcan-gateway:
+    networks: [family-assistant-network, vulcan-egress]
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.VulcanGateway/Dockerfile
+    <<: *defaults
+    environment:
+      TZ: ${TZ:-Europe/Warsaw}
+    volumes:
+      - vulcan-session:/app/session
+  whatsapp-gateway:
+    hostname: family-whatsapp
+    networks: [family-assistant-network, whatsapp-egress]
+    init: true
+    stop_grace_period: 30s
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.WhatsAppGateway/Dockerfile
+    <<: *defaults
+    environment:
+      TZ: ${TZ:-Europe/Warsaw}
+      WHATSAPP_SEND_ENABLED: ${WHATSAPP_SEND_ENABLED:-false}
+      WHATSAPP_AUTO_CONNECT: ${WHATSAPP_AUTO_CONNECT:-false}
+    volumes:
+      - whatsapp-session:/app/.wwebjs_auth
+networks:
+  host-access:
+  whatsapp-egress:
+  vulcan-egress:
+  family-assistant-network:
+    internal: true
+volumes:
+  family-data:
+  whatsapp-session:
+  vulcan-session:
+  google-token:

@@ -1,0 +1,17 @@
+name: family-assistant-tests
+services:
+  core-tests:
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.Core/Dockerfile
+      target: test
+  vulcan-tests:
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.VulcanGateway/Dockerfile
+      target: test
+  whatsapp-tests:
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.WhatsAppGateway/Dockerfile
+      target: test

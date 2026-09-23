@@ -1,0 +1,26 @@
+# Fictional examples only. Copy to family.yaml for local configuration.
+# Loaded by the summary module. Use student IDs from your registered account.
+timezone: Europe/Warsaw
+language: pl
+family:
+  - name: PrzykladoweDziecko
+    type: child
+    vulcanStudentId: CHANGE_ME
+    calendarAliases: []
+    enabled: true
+  - name: PrzykladowyOpiekun
+    type: adult
+    calendarAliases: []
+    enabled: true
+rules:
+  minimumTravelMinutes: 30
+  pickups:
+    - day: Tuesday
+      child: PrzykladoweDziecko
+      pickedUpBy: PrzykladowyOpiekun
+notifications:
+  morningSummary: "07:00"
+  tomorrowSummary: "20:00"
+  changeCheckIntervalMinutes: 30
+googleCalendar:
+  calendarIds: []
