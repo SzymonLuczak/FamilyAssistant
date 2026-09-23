@@ -1,0 +1,12 @@
+{
+  "name": "family-assistant-biedronka-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "puppeteer-core": "25.11.0"
+  }
+}

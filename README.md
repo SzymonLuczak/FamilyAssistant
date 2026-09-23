@@ -14,6 +14,9 @@ Instrukcja parowania i testu: [docs/WHATSAPP.md](docs/WHATSAPP.md).
 Kalendarze: [docs/GOOGLE-CALENDAR.md](docs/GOOGLE-CALENDAR.md), panel http://localhost:8080/google.
 Szkoła: [docs/VULCAN.md](docs/VULCAN.md), panel http://localhost:8080/vulcan.
 Podsumowanie: [docs/DAILY-SUMMARY.md](docs/DAILY-SUMMARY.md), panel http://localhost:8080/summary.
+Zakupy: [docs/SHOPPING.md](docs/SHOPPING.md), panel http://localhost:8080/shopping.
+Połączenie dwóch kont Biedronki: [docs/BIEDRONKA-CONNECTION.md](docs/BIEDRONKA-CONNECTION.md), panel http://localhost:8080/shopping/biedronka. Pierwsze logowanie i sprawdzenie pobierania wymagane przed uznaniem synchronizacji za uruchomioną.
+Import JSON Biedronki łączy historię obu kart, usuwa duplikaty i udostępnia wspólną listę produktów do zatwierdzenia.
 
 ## Podstawa i zakres
 
@@ -37,8 +40,7 @@ compose.test.yaml
 ```
 
 Usługi są niezależne. Core odczytuje status WhatsApp z limitem 3 sekund.
-Wykrywanie konfliktów i import paragonów są
-poza bieżącym zakresem. Adapter eduVULCAN korzysta z przypiętej wersji Iris.
+Wykrywanie konfliktów jest poza bieżącym zakresem. Adapter eduVULCAN korzysta z przypiętej wersji Iris.
 
 ## Uruchomienie przez Docker
 
@@ -48,6 +50,7 @@ W katalogu repozytorium:
 ```powershell
 Copy-Item .env.example .env
 Copy-Item config/family.example.yaml config/family.yaml
+New-Item -ItemType Directory -Force imports/biedronka
 docker compose up --build -d --wait
 docker compose ps
 ./scripts/smoke.ps1

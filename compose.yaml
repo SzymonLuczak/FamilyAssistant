@@ -19,6 +19,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       Gateways__WhatsApp: http://whatsapp-gateway:3000
       Gateways__Vulcan: http://vulcan-gateway:8000
+      Shopping__Account1Label: ${BIEDRONKA_ACCOUNT_1_LABEL:-Konto 1}
+      Shopping__Account2Label: ${BIEDRONKA_ACCOUNT_2_LABEL:-Konto 2}
       Summary__SchedulerEnabled: ${SUMMARY_SCHEDULER_ENABLED:-true}
       Summary__SendEnabled: ${SUMMARY_SEND_ENABLED:-false}
       Summary__GroupId: ${WHATSAPP_GROUP_ID:-}
@@ -32,6 +34,27 @@ services:
       - google-token:/app/secrets/google
       - ./secrets:/app/config-secrets:ro
       - ./config:/app/config:ro
+      - ./imports/biedronka:/app/imports/biedronka
+      - ${BIEDRONKA_DOWNLOADS_DIR:-./imports/browser-downloads}:/app/browser-receipts:ro
+  biedronka-gateway:
+    profiles: [legacy-biedronka]
+    hostname: family-biedronka
+    <<: *defaults
+    networks: [family-assistant-network, biedronka-egress]
+    init: true
+    shm_size: 512m
+    stop_grace_period: 30s
+    build:
+      context: .
+      dockerfile: src/FamilyAssistant.BiedronkaGateway/Dockerfile
+    environment:
+      ACCOUNT_1_LABEL: ${BIEDRONKA_ACCOUNT_1_LABEL:-Konto 1}
+      ACCOUNT_2_LABEL: ${BIEDRONKA_ACCOUNT_2_LABEL:-Konto 2}
+    ports:
+      - "127.0.0.1:8081:6080"
+    volumes:
+      - biedronka-session:/state
+      - ./imports/biedronka:/imports
   vulcan-gateway:
     networks: [family-assistant-network, vulcan-egress]
     build:
@@ -61,6 +84,7 @@ networks:
   host-access:
   whatsapp-egress:
   vulcan-egress:
+  biedronka-egress:
   family-assistant-network:
     internal: true
 volumes:
@@ -68,3 +92,4 @@ volumes:
   whatsapp-session:
   vulcan-session:
   google-token:
+  biedronka-session:

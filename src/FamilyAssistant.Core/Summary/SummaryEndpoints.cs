@@ -61,7 +61,7 @@ public static class SummaryEndpoints
     <details><summary>Ostatnie zapisane podglądy</summary><button id="history">Odśwież listę</button><ul id="items"></ul></details>
     <p><strong>Przyciski powyżej tworzą tylko podgląd. Wysyłka zgodnie z harmonogramem ma osobną historię.</strong></p>
     <details><summary>Wysyłka na WhatsApp</summary><button id="deliveries">Odśwież status wysyłki</button><ul id="deliveryItems"></ul></details>
-    <p><a href="/vulcan">Szkoła</a> · <a href="/google">Kalendarze</a> · <a href="/whatsapp/pair">WhatsApp</a></p></main>
+    <p><a href="/shopping">Lista zakupów</a> · <a href="/vulcan">Szkoła</a> · <a href="/google">Kalendarze</a> · <a href="/whatsapp/pair">WhatsApp</a></p></main>
     <script>
     const $=id=>document.getElementById(id), token='{{TOKEN}}';
     async function api(path,options){const response=await fetch('/summary'+path,{cache:'no-store',...options});const data=await response.json();if(!response.ok)throw Error(data.error==='family_not_configured'?'Najpierw skonfiguruj rodzinę.':data.error==='invalid_family_configuration'?'Konfiguracja rodziny wymaga poprawienia.':'Nie udało się przygotować podsumowania. Sprawdź połączenia i spróbuj ponownie.');return data;}

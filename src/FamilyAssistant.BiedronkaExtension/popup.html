@@ -1,0 +1,9 @@
+<!doctype html><html lang="pl"><meta charset="utf-8"><title>Paragony Biedronki</title>
+<style>body{font:15px system-ui;width:340px;padding:16px;color:#173e30}input,select,button{box-sizing:border-box;width:100%;padding:9px;margin:6px 0}input[type=checkbox]{width:auto}p{line-height:1.5}#status{white-space:pre-wrap}</style>
+<h2>Paragony Biedronki</h2><p>Użyj osobnego profilu Chrome lub Edge dla każdej karty.</p>
+<label>Konto<select id="account"><option value="account-1">Konto 1 — Szymon</option><option value="account-2">Konto 2 — Joanna</option></select></label>
+<label>Imię w powitaniu Biedronki<input id="name" maxlength="60" placeholder="np. Szymon"></label>
+<label><input id="enabled" type="checkbox">Sprawdzaj co 6 godzin</label><button id="save">Zapisz ustawienia</button>
+<button id="open">Otwórz historię Biedronki</button><button id="run">Pobierz wybrany zakres</button>
+<p>Automatyczne sprawdzanie działa, gdy ten profil przeglądarki jest uruchomiony. Hasło wpisuj wyłącznie na stronie Biedronki. Weryfikację przechodzisz samodzielnie.</p>
+<p id="status" role="status"></p><script type="module" src="popup.js"></script></html>

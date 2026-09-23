@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Family Assistant — paragony Biedronki",
+  "version": "0.1.2",
+  "description": "Zapisuje paragony z Twojego zalogowanego konta Biedronki do lokalnego folderu FamilyAssistant.",
+  "permissions": ["storage", "alarms", "downloads", "scripting"],
+  "host_permissions": ["https://moja.biedronka.pl/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html" }
+}

@@ -1,6 +1,7 @@
 using FamilyAssistant.Core.Google;
 using FamilyAssistant.Core.Summary;
 using Quartz;
+using FamilyAssistant.Core.Shopping;
 
 var builder = WebApplication.CreateBuilder(args);
 // Sending requires explicit local configuration; previews remain read-only.
@@ -16,6 +17,9 @@ builder.Logging.AddFilter("System.Net.Http.HttpClient.google", LogLevel.Warning)
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ShoppingStore>();
+builder.Services.AddSingleton<BrowserReceiptInbox>();
+builder.Services.AddHostedService<ReceiptImportWorker>();
 builder.Services.AddSingleton<GoogleState>();
 builder.Services.AddSingleton<GoogleAuthorization>();
 builder.Services.AddSingleton<GoogleCalendarReader>();
@@ -44,6 +48,7 @@ FamilyAssistant.Core.PairingPage.MapPairingPage(app);
 app.MapGoogle();
 FamilyAssistant.Core.VulcanEndpoints.MapVulcan(app);
 app.MapSummary();
+app.MapShopping();
 app.MapHealthChecks("/health");
 app.MapGet("/health/integrations", async (IHttpClientFactory clients, IConfiguration config, GoogleAuthorization google) =>
 {
@@ -70,7 +75,7 @@ app.MapGet("/", () => Results.Ok(new
     service = "FamilyAssistant.Core",
     milestone = 5,
     integrations = app.Configuration.GetValue<bool>("Summary:SendEnabled") ? "scheduled_delivery" : "read_only",
-    setup = new { summary = "/summary", google = "/google", vulcan = "/vulcan", whatsapp = "/whatsapp/pair" }
+    setup = new { shopping = "/shopping", summary = "/summary", google = "/google", vulcan = "/vulcan", whatsapp = "/whatsapp/pair" }
 }));
 app.Run();
 
