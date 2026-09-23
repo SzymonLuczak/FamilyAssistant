@@ -58,6 +58,17 @@ public sealed class SummaryStore(IConfiguration config)
         finally { gate.Release(); }
     }
     public static string Key(string kind, DateOnly day) => $"{kind}:{day:yyyy-MM-dd}";
+    public async Task<SummaryDraft?> Find(string kind, DateOnly day, CancellationToken token = default)
+    {
+        await gate.WaitAsync(token);
+        try
+        {
+            await using var db = await Open(token);
+            var key = Key(kind, day);
+            return await db.Drafts.AsNoTracking().SingleOrDefaultAsync(d => d.Id == key, token);
+        }
+        finally { gate.Release(); }
+    }
     public static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
 
     public async Task<SummaryDraft> Save(string kind, SummaryPreview preview, CancellationToken token = default)

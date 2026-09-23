@@ -29,13 +29,15 @@ public static class SummaryEndpoints
         app.MapGet("/summary/status", (FamilyConfiguration family, IConfiguration config) =>
         {
             var settings = family.Read();
-            return Results.Ok(new { mode = "preview_only", students = settings.Family.Count(p => p.Enabled && p.Type == "child"),
+            return Results.Ok(new { mode = config.GetValue<bool>("Summary:SendEnabled") ? "scheduled_delivery" : "preview_only", students = settings.Family.Count(p => p.Enabled && p.Type == "child"),
                 schedulerEnabled = config.GetValue<bool>("Summary:SchedulerEnabled"),
                 morning = settings.Notifications.MorningSummary, tomorrow = settings.Notifications.TomorrowSummary,
                 timeZone = settings.Timezone, pickupRules = settings.Rules.Pickups.Length });
         });
         app.MapGet("/summary/history", async (SummaryStore store, HttpContext context) =>
             Results.Ok(await store.Latest(context.RequestAborted)));
+        app.MapGet("/summary/deliveries", async (DeliveryQueue queue, HttpContext context) =>
+            Results.Ok(await queue.History(context.RequestAborted)));
         app.MapPost("/summary/preview/{day}", async (string day, HttpContext context, IAntiforgery csrf, DailySummary summary, SummaryStore store) =>
         {
             await csrf.ValidateRequestAsync(context);
@@ -57,7 +59,8 @@ public static class SummaryEndpoints
     <button id="today">Przygotuj na dzisiaj</button><button id="tomorrow">Przygotuj na jutro</button>
     <p id="message" role="status"></p><pre id="preview" hidden></pre>
     <details><summary>Ostatnie zapisane podglądy</summary><button id="history">Odśwież listę</button><ul id="items"></ul></details>
-    <p><strong>To podgląd. Wiadomości nie są wysyłane na WhatsApp.</strong></p>
+    <p><strong>Przyciski powyżej tworzą tylko podgląd. Wysyłka zgodnie z harmonogramem ma osobną historię.</strong></p>
+    <details><summary>Wysyłka na WhatsApp</summary><button id="deliveries">Odśwież status wysyłki</button><ul id="deliveryItems"></ul></details>
     <p><a href="/vulcan">Szkoła</a> · <a href="/google">Kalendarze</a> · <a href="/whatsapp/pair">WhatsApp</a></p></main>
     <script>
     const $=id=>document.getElementById(id), token='{{TOKEN}}';
@@ -66,7 +69,8 @@ public static class SummaryEndpoints
     async function generate(day){$('today').disabled=$('tomorrow').disabled=$('history').disabled=true;$('preview').hidden=true;$('message').className='';$('message').textContent='Pobieram plany i kalendarze…';try{const d=await api('/preview/'+day,{method:'POST',headers:{'X-CSRF-TOKEN':token}});show(d.preview.text);$('message').className=d.preview.incomplete?'warning':'';$('message').textContent=(d.preview.incomplete?'Uwaga: część danych jest niepełna lub wymaga sprawdzenia. ':'')+'Podgląd na '+d.preview.date+' przygotowany '+new Date(d.preview.generatedAt).toLocaleString('pl-PL')+'.';}catch(e){$('message').textContent=e.message;}finally{$('today').disabled=$('tomorrow').disabled=$('history').disabled=false;}}
     $('today').onclick=()=>generate('today');$('tomorrow').onclick=()=>generate('tomorrow');
     $('history').onclick=async()=>{try{const items=await api('/history');$('items').replaceChildren();for(const d of items){const li=document.createElement('li'),button=document.createElement('button');button.textContent=d.date+' · '+({morning:'poranny',tomorrow:'wieczorny',manual:'ręczny'}[d.kind]||d.kind);button.onclick=()=>{show(d.text);$('message').className='warning';$('message').textContent='Zapisany podgląd z '+new Date(d.updatedAt*1000).toLocaleString('pl-PL')+'. Dane mogły się zmienić — przyciski powyżej pobiorą nowy plan.';};li.append(button);$('items').append(li);}if(!items.length)$('items').textContent='Brak zapisanych podglądów.';}catch(e){$('message').textContent=e.message;}};
-    api('/status').then(s=>{$('status').textContent='Uczniowie: '+s.students+'. '+(s.schedulerEnabled?'Automatyczne podglądy: '+s.morning+' na dziś i '+s.tomorrow+' na jutro (czas polski).':'Automatyczne podglądy są wyłączone.')+(s.pickupRules?' Zapisane zasady odbioru: '+s.pickupRules+'.':' Brak stałych zasad odbioru.');}).catch(e=>{$('status').textContent=e.message;});
+    $('deliveries').onclick=async()=>{try{const items=await api('/deliveries');$('deliveryItems').replaceChildren();const labels={pending:'oczekuje',sending:'trwa wysyłka',sent:'przyjęte przez WhatsApp',unknown:'wynik niepewny — sprawdź grupę, bez automatycznej ponownej wysyłki',blocked:'wysyłka zablokowana — sprawdź połączenie i grupę',expired:'pominięto spóźnioną wiadomość'};for(const d of items){const li=document.createElement('li');li.textContent=d.slot+' — '+(labels[d.status]||d.status);$('deliveryItems').append(li);}if(!items.length)$('deliveryItems').textContent='Brak wysyłek. Pierwsza wiadomość zostanie przygotowana w najbliższym terminie harmonogramu.';}catch(e){$('message').textContent=e.message;}};
+    api('/status').then(s=>{$('status').textContent='Uczniowie: '+s.students+'. '+(s.schedulerEnabled?(s.mode==='scheduled_delivery'?'Wysyłka na WhatsApp: ':'Automatyczne podglądy: ')+s.morning+' na dziś i '+s.tomorrow+' na jutro (czas polski).':'Harmonogram jest wyłączony.')+(s.pickupRules?' Zapisane zasady odbioru: '+s.pickupRules+'.':' Brak stałych zasad odbioru.');}).catch(e=>{$('status').textContent=e.message;});
     </script></html>
     """;
 }

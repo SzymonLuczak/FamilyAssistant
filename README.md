@@ -8,6 +8,8 @@ Adapter eduVULCAN ma lokalny import rejestracji, listę uczniów, plan i kopie o
 Potwierdzono rzeczywisty odczyt trzech uczniów; interpretacja zmian wymaga dalszej weryfikacji.
 Podsumowanie łączy szkołę z Google i stałymi zasadami odbioru. Quartz przygotowuje
 lokalne podglądy rano i wieczorem, a SQLite zapewnia zapis i deduplikację.
+Dodano opcjonalną trwałą kolejkę wysyłającą zaplanowane podsumowania:
+[docs/DELIVERY.md](docs/DELIVERY.md). Przykładowa konfiguracja ma wysyłkę wyłączoną.
 Instrukcja parowania i testu: [docs/WHATSAPP.md](docs/WHATSAPP.md).
 Kalendarze: [docs/GOOGLE-CALENDAR.md](docs/GOOGLE-CALENDAR.md), panel http://localhost:8080/google.
 Szkoła: [docs/VULCAN.md](docs/VULCAN.md), panel http://localhost:8080/vulcan.
@@ -35,7 +37,7 @@ compose.test.yaml
 ```
 
 Usługi są niezależne. Core odczytuje status WhatsApp z limitem 3 sekund.
-Outbox wysyłkowy, wykrywanie konfliktów i import paragonów są
+Wykrywanie konfliktów i import paragonów są
 poza bieżącym zakresem. Adapter eduVULCAN korzysta z przypiętej wersji Iris.
 
 ## Uruchomienie przez Docker
@@ -140,7 +142,7 @@ Na Linux użyj `PORT=3001 npm start`. `npm test` obejmuje kompilację TypeScript
 1. Uzupełnić własne zasady odbioru oraz aliasy w config/family.yaml.
 2. Zweryfikować zastępstwa i odwołania przed wyznaczaniem godzin odbioru.
 3. Milestone 6: różnice planu i wykrywanie konfliktów.
-4. Rzeczywistą wysyłkę WhatsApp sprawdzić dopiero po osobnym zleceniu użytkownika.
+4. Potwierdzić pierwszą zaplanowaną wysyłkę w historii panelu i na grupie.
 
 Domyślnie `WHATSAPP_SEND_ENABLED=false`. True zezwala na ręczne wywołanie wysyłki
 do wybranej grupy; nie uruchamia automatycznego nadawcy.

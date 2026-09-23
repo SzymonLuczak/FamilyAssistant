@@ -1,9 +1,9 @@
 # Podsumowanie dnia — Milestone 5
 
 Panel: http://localhost:8080/summary. Przyciski przygotowują podgląd na dziś
-albo jutro i zapisują go lokalnie. Nie ma automatycznej ani ręcznej wysyłki
-z tego panelu. Flaga WhatsApp pozostaje wyłączona; zmiana jej wartości nie
-uruchomi wysyłania podsumowań, ponieważ ten moduł nie wywołuje gatewaya WhatsApp.
+albo jutro i zapisują go lokalnie. Ręczne podglądy nie wysyłają wiadomości.
+Po włączeniu SUMMARY_SEND_ENABLED scheduler przekazuje poranne i wieczorne
+podsumowania do trwałej kolejki. Szczegóły w [DELIVERY.md](DELIVERY.md).
 
 ## Dane i rodzinne zasady
 
@@ -68,13 +68,13 @@ Godzina bieżącego odczytu nie jest częścią hasha dla świeżych danych.
 Historia pokazuje 10 ostatnich wpisów; zapis usuwa wpisy starsze niż 30 dni.
 Historia jest wyraźnie oznaczona jako zapis, który może być nieaktualny.
 
-Podgląd NIE oznacza dostarczenia wiadomości. Nie ma jeszcze outboxa
-wysyłkowego ani oznaczania `sent`; wdrożenie wysyłki musi korzystać
-z odrębnego stanu i deduplikacji gatewaya.
+Podgląd NIE oznacza dostarczenia wiadomości. Odrębny outbox zapisuje stan
+wysyłki i korzysta z trwałej deduplikacji gatewaya. Historia w panelu rozróżnia
+podglądy oraz wysyłkę na WhatsApp.
 
 ## Dalszy zakres
 
 - Ustalenie rzeczywistych reguł odbioru i aliasów.
 - Porównanie niejednoznacznych zmian lekcji z dziennikiem.
 - Milestone 6: różnice planów, konflikty, minimumTravelMinutes i powiadomienia.
-- Dostarczanie wiadomości dopiero po odrębnym zleceniu użytkownika.
+- Weryfikacja pierwszego rzeczywistego dostarczenia o porze harmonogramu.

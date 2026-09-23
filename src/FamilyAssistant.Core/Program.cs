@@ -3,10 +3,12 @@ using FamilyAssistant.Core.Summary;
 using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
-// Scheduled sending remains disabled; integrations are configured independently.
+// Sending requires explicit local configuration; previews remain read-only.
 builder.Services.AddHealthChecks();
 builder.Services.AddHostedService<FamilyAssistant.Core.SkeletonWorker>();
 builder.Services.AddHttpClient("whatsapp", client => client.Timeout = TimeSpan.FromSeconds(3));
+builder.Services.AddHttpClient("whatsapp-delivery", client => client.Timeout = TimeSpan.FromSeconds(25));
+builder.Logging.AddFilter("System.Net.Http.HttpClient.whatsapp-delivery", LogLevel.Warning);
 builder.Services.AddHttpClient("google", client => client.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddHttpClient("vulcan", client => client.Timeout = TimeSpan.FromSeconds(35));
 builder.Logging.AddFilter("System.Net.Http.HttpClient.vulcan", LogLevel.Warning);
@@ -21,6 +23,10 @@ builder.Services.AddSingleton<FamilyConfiguration>();
 builder.Services.AddSingleton<ISummarySources, SummarySources>();
 builder.Services.AddSingleton<DailySummary>();
 builder.Services.AddSingleton<SummaryStore>();
+builder.Services.AddSingleton<DeliveryQueue>();
+builder.Services.AddSingleton<ISummarySender, SummarySender>();
+builder.Services.AddSingleton<DeliveryDispatcher>();
+builder.Services.AddHostedService<DeliveryWorker>();
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 if (builder.Configuration.GetValue<bool>("Summary:SchedulerEnabled"))
 {
@@ -63,7 +69,7 @@ app.MapGet("/", () => Results.Ok(new
 {
     service = "FamilyAssistant.Core",
     milestone = 5,
-    integrations = "read_only",
+    integrations = app.Configuration.GetValue<bool>("Summary:SendEnabled") ? "scheduled_delivery" : "read_only",
     setup = new { summary = "/summary", google = "/google", vulcan = "/vulcan", whatsapp = "/whatsapp/pair" }
 }));
 app.Run();

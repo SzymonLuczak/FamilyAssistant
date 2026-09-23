@@ -3,7 +3,7 @@ using Quartz;
 namespace FamilyAssistant.Core.Summary;
 
 [DisallowConcurrentExecution]
-public sealed class SummaryJob(FamilyConfiguration configuration, DailySummary summary, SummaryStore store,
+public sealed class SummaryJob(FamilyConfiguration configuration, DailySummary summary, SummaryStore store, DeliveryQueue queue,
     IConfiguration config, TimeProvider clock, ILogger<SummaryJob> logger) : IJob
 {
     public async Task Execute(IJobExecutionContext context)
@@ -14,11 +14,24 @@ public sealed class SummaryJob(FamilyConfiguration configuration, DailySummary s
             var settings = configuration.Read();
             foreach (var slot in Due(clock.GetUtcNow(), settings))
             {
-                if (await store.Exists(slot.Kind, slot.Day, context.CancellationToken)) continue;
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                 deadline.CancelAfter(TimeSpan.FromMinutes(3));
-                var preview = await summary.Build(slot.Day, deadline.Token);
-                await store.Save(slot.Kind, preview, deadline.Token);
+                var draft = await store.Find(slot.Kind, slot.Day, deadline.Token);
+                if (draft is null)
+                {
+                    var preview = await summary.Build(slot.Day, deadline.Token);
+                    draft = await store.Save(slot.Kind, preview, deadline.Token);
+                }
+                if (config.GetValue<bool>("Summary:SendEnabled"))
+                {
+                    var group = config["Summary:GroupId"] ?? throw new SummaryFailure("group_not_configured");
+                    var runDay = slot.Kind == "morning" ? slot.Day : slot.Day.AddDays(-1);
+                    var planned = TimeOnly.ParseExact(slot.Kind == "morning" ? settings.Notifications.MorningSummary : settings.Notifications.TomorrowSummary,
+                        "HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                    var local = runDay.ToDateTime(planned, DateTimeKind.Unspecified);
+                    var expires = new DateTimeOffset(local, TimeZoneInfo.FindSystemTimeZoneById(settings.Timezone).GetUtcOffset(local)).AddMinutes(30);
+                    await queue.Enqueue(draft, group, expires, deadline.Token);
+                }
             }
         }
         catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested) { }

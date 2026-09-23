@@ -4,8 +4,8 @@ foreach ($port in @($CorePort)) {
     $response = Invoke-WebRequest "http://127.0.0.1:$port/health" -TimeoutSec 10
     if ($response.StatusCode -ne 200) { throw "Unhealthy service on port $port" }
     $status = Invoke-RestMethod "http://127.0.0.1:$port/" -TimeoutSec 10
-    if ($status.integrations -ne 'read_only') { throw "Unexpected integration mode on port $port" }
-    Write-Host "$($status.service): healthy, integrations read only"
+    if ($status.integrations -notin @('read_only', 'scheduled_delivery')) { throw "Unexpected integration mode on port $port" }
+    Write-Host "$($status.service): healthy, $($status.integrations)"
 }
 Push-Location (Join-Path $PSScriptRoot '..')
 try {

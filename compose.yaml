@@ -20,6 +20,8 @@ services:
       Gateways__WhatsApp: http://whatsapp-gateway:3000
       Gateways__Vulcan: http://vulcan-gateway:8000
       Summary__SchedulerEnabled: ${SUMMARY_SCHEDULER_ENABLED:-true}
+      Summary__SendEnabled: ${SUMMARY_SEND_ENABLED:-false}
+      Summary__GroupId: ${WHATSAPP_GROUP_ID:-}
       Google__TimeZone: ${TZ:-Europe/Warsaw}
       Google__RedirectUri: http://localhost:${CORE_PORT:-8080}/google/callback
       WHATSAPP_SEND_ENABLED: ${WHATSAPP_SEND_ENABLED:-false}
